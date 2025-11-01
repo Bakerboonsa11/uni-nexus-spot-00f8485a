@@ -7,6 +7,11 @@ interface UserData {
   uid: string;
   email: string;
   role: 'admin' | 'user';
+  displayName?: string;
+  photoURL?: string;
+  bio?: string;
+  phone?: string;
+  location?: string;
 }
 
 interface AuthContextType {
@@ -68,10 +73,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
+            const docData = userDoc.data();
             const userData = {
               uid: user.uid,
               email: user.email!,
-              role: userDoc.data().role
+              role: docData.role,
+              displayName: docData.displayName,
+              photoURL: docData.photoURL,
+              bio: docData.bio,
+              phone: docData.phone,
+              location: docData.location
             };
             console.log("✅ AuthContext: User data loaded:", userData);
             setUserData(userData);

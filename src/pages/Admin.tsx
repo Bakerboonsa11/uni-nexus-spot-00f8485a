@@ -335,7 +335,7 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
-                  ${totalRevenue.toLocaleString()}
+                  {totalRevenue.toLocaleString()} ETB
                 </div>
                 <p className="text-xs text-muted-foreground">Combined services + products</p>
               </CardContent>
@@ -431,13 +431,13 @@ const Admin = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Average Service Price</span>
                   <span className="text-lg font-bold">
-                    ${services.length > 0 ? (services.reduce((sum, s) => sum + s.price, 0) / services.length).toFixed(2) : '0.00'}
+                    {services.length > 0 ? (services.reduce((sum, s) => sum + s.price, 0) / services.length).toFixed(2) : '0.00'} ETB
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Average Product Price</span>
                   <span className="text-lg font-bold">
-                    ${products.length > 0 ? (products.reduce((sum, p) => sum + p.price, 0) / products.length).toFixed(2) : '0.00'}
+                    {products.length > 0 ? (products.reduce((sum, p) => sum + p.price, 0) / products.length).toFixed(2) : '0.00'} ETB
                   </span>
                 </div>
                 <div className="flex justify-between items-center">

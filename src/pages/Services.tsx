@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { TopNav } from "@/components/TopNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,8 @@ interface Service {
 }
 
 const Services = () => {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const [user] = useAuthState(auth);
   const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,6 +52,16 @@ const Services = () => {
   useEffect(() => {
     loadServices();
   }, []);
+
+  useEffect(() => {
+    if (highlightId && services.length > 0) {
+      const service = services.find(s => s.id === highlightId);
+      if (service) {
+        setSelectedService(service);
+        setDetailsOpen(true);
+      }
+    }
+  }, [highlightId, services]);
 
   const loadServices = async () => {
     try {
@@ -261,13 +274,13 @@ const Services = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price ($)</Label>
+                      <Label htmlFor="price">Price (ETB)</Label>
                       <Input 
                         id="price" 
                         name="price" 
                         type="number" 
                         step="0.01"
-                        placeholder="20.00"
+                        placeholder="500.00"
                         required 
                         className="glass"
                       />
@@ -416,7 +429,7 @@ const Services = () => {
                       <Briefcase className="w-6 h-6 text-white" />
                     </div>
                     <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                      ${service.price}
+                      {service.price} ETB
                     </span>
                   </div>
                   <CardTitle className="text-xl">{service.title}</CardTitle>
@@ -504,97 +517,134 @@ const Services = () => {
 
         {/* Service Details Modal */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="max-w-[95vw] sm:max-w-6xl glass border-0 bg-gradient-to-br from-background/95 via-primary/5 to-secondary/5 backdrop-blur-xl shadow-2xl mx-2 sm:mx-auto">
+          <DialogContent className="max-w-[95vw] sm:max-w-7xl glass border-0 bg-gradient-to-br from-background/95 via-primary/5 to-secondary/5 backdrop-blur-2xl shadow-2xl mx-2 sm:mx-auto overflow-hidden">
             {selectedService && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="max-h-[85vh] overflow-y-auto custom-scrollbar"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-h-[90vh] overflow-y-auto custom-scrollbar"
               >
-                {/* Hero Section */}
-                <div className="relative mb-8 -m-6 p-8 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 rounded-t-lg">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-t-lg" />
+                {/* Ultra Hero Section */}
+                <div className="relative -m-6 mb-8">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent" />
+                  
                   <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="relative z-10"
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.8, type: "spring", stiffness: 100 }}
+                    className="relative z-10 p-8 text-center"
                   >
-                    <DialogHeader className="text-center">
-                      <motion.div
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.4, duration: 0.8, type: "spring", stiffness: 200 }}
+                      className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-2xl relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                      <Briefcase className="w-12 h-12 text-white relative z-10" />
+                    </motion.div>
+                    
+                    <motion.h1
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.6, duration: 0.6 }}
+                      className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent leading-tight"
+                    >
+                      {selectedService.title}
+                    </motion.h1>
+                    
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.8, type: "spring", stiffness: 300 }}
+                      className="flex flex-col sm:flex-row items-center justify-center gap-4 text-lg"
+                    >
+                      <motion.span 
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        className="inline-flex items-center rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 border-2 border-primary/30 px-6 py-3 text-sm font-bold backdrop-blur-sm shadow-lg"
+                      >
+                        ✨ {selectedService.category}
+                      </motion.span>
+                      <motion.span 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                        className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-lg"
+                        transition={{ delay: 1, type: "spring", stiffness: 400 }}
+                        className="text-4xl sm:text-5xl font-black bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 bg-clip-text text-transparent drop-shadow-lg"
                       >
-                        <Briefcase className="w-10 h-10 text-white" />
-                      </motion.div>
-                      <DialogTitle className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
-                        {selectedService.title}
-                      </DialogTitle>
-                      <DialogDescription className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-base sm:text-lg">
-                        <motion.span 
-                          whileHover={{ scale: 1.05 }}
-                          className="inline-flex items-center rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/30 px-3 sm:px-4 py-2 text-sm font-medium backdrop-blur-sm"
-                        >
-                          {selectedService.category}
-                        </motion.span>
-                        <motion.span 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.3, type: "spring" }}
-                          className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent"
-                        >
-                          ${selectedService.price}
-                        </motion.span>
-                      </DialogDescription>
-                    </DialogHeader>
+                        {selectedService.price} ETB
+                      </motion.span>
+                    </motion.div>
                   </motion.div>
                 </div>
 
-                <div className="space-y-8">
-                  {/* Images Gallery */}
+                <div className="space-y-10">
+                  {/* Ultra Images Gallery */}
                   {selectedService.images && selectedService.images.length > 0 && (
                     <motion.div 
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="space-y-4"
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3, duration: 0.8 }}
+                      className="space-y-6"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                          <ImageIcon className="w-4 h-4 text-white" />
+                      <motion.div 
+                        initial={{ x: -100, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.4, duration: 0.6 }}
+                        className="flex items-center gap-4"
+                      >
+                        <motion.div 
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.6 }}
+                          className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-xl"
+                        >
+                          <ImageIcon className="w-6 h-6 text-white" />
+                        </motion.div>
+                        <div>
+                          <h3 className="text-3xl font-black bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                            Portfolio Gallery
+                          </h3>
+                          <p className="text-muted-foreground">Showcase of amazing work</p>
                         </div>
-                        <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                          Portfolio Gallery
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                      </motion.div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {selectedService.images.map((image, index) => (
                           <motion.div 
                             key={index}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1 * index, duration: 0.3 }}
-                            whileHover={{ scale: 1.05, rotate: 1 }}
-                            className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gradient-to-r from-purple-500/30 to-pink-500/30 shadow-lg hover:shadow-purple-500/25"
+                            initial={{ opacity: 0, scale: 0.5, rotateY: 90 }}
+                            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                            transition={{ 
+                              delay: 0.5 + (index * 0.1), 
+                              duration: 0.8,
+                              type: "spring",
+                              stiffness: 100
+                            }}
+                            whileHover={{ 
+                              scale: 1.1, 
+                              rotateY: 15,
+                              z: 50,
+                              transition: { duration: 0.3 }
+                            }}
+                            className="group relative aspect-square rounded-2xl overflow-hidden shadow-2xl hover:shadow-primary/50"
                           >
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 z-10" />
                             <img 
                               src={image} 
                               alt={`Portfolio ${index + 1}`}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-125"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 z-20" />
                             <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
+                              whileHover={{ scale: 1.2, rotate: 360 }}
+                              whileTap={{ scale: 0.8 }}
                               onClick={() => window.open(image, '_blank')}
-                              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30"
                             >
-                              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                <ImageIcon className="w-6 h-6 text-white" />
+                              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-xl flex items-center justify-center border border-white/30">
+                                <ImageIcon className="w-8 h-8 text-white" />
                               </div>
                             </motion.button>
                           </motion.div>
@@ -780,19 +830,177 @@ const Services = () => {
                     </div>
                   </motion.div>
 
-                  {/* Contact Button */}
+                  {/* Ultra Contact Options */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 100 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.9 }}
+                    transition={{ delay: 1.2, duration: 0.8, type: "spring", stiffness: 100 }}
+                    className="relative"
                   >
-                    <motion.button
-                      whileHover={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full p-4 rounded-xl bg-gradient-to-r from-primary via-secondary to-accent text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      Contact Provider Now
-                    </motion.button>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 rounded-3xl blur-xl" />
+                    <div className="relative glass rounded-3xl p-8 border border-primary/30 shadow-2xl">
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 1.4, type: "spring", stiffness: 200 }}
+                        className="flex items-center gap-4 mb-8"
+                      >
+                        <motion.div 
+                          whileHover={{ rotate: 360, scale: 1.2 }}
+                          transition={{ duration: 0.6 }}
+                          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-2xl"
+                        >
+                          <Users className="w-8 h-8 text-white" />
+                        </motion.div>
+                        <div>
+                          <h3 className="text-3xl font-black bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                            Connect Now
+                          </h3>
+                          <p className="text-muted-foreground">Choose your preferred way to connect</p>
+                        </div>
+                      </motion.div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                        {/* Email */}
+                        <motion.a
+                          href={`mailto:${selectedService.contactInfo}`}
+                          initial={{ opacity: 0, y: 50, rotateX: 90 }}
+                          animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                          transition={{ delay: 1.5, duration: 0.6 }}
+                          whileHover={{ 
+                            scale: 1.1, 
+                            rotateY: 15,
+                            boxShadow: "0 20px 40px rgba(59, 130, 246, 0.5)"
+                          }}
+                          whileTap={{ scale: 0.95 }}
+                          className="group relative flex flex-col items-center p-6 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-500 backdrop-blur-sm"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-cyan-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <motion.div 
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.8 }}
+                            className="text-5xl mb-3 group-hover:scale-125 transition-transform duration-500"
+                          >
+                            📧
+                          </motion.div>
+                          <span className="text-sm font-bold text-blue-300 group-hover:text-blue-200 transition-colors">Email</span>
+                        </motion.a>
+
+                        {/* Phone */}
+                        {selectedService.phone && (
+                          <motion.a
+                            href={`tel:${selectedService.phone}`}
+                            initial={{ opacity: 0, y: 50, rotateX: 90 }}
+                            animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                            transition={{ delay: 1.6, duration: 0.6 }}
+                            whileHover={{ 
+                              scale: 1.1, 
+                              rotateY: 15,
+                              boxShadow: "0 20px 40px rgba(34, 197, 94, 0.5)"
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            className="group relative flex flex-col items-center p-6 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-400/30 hover:border-green-400/60 transition-all duration-500 backdrop-blur-sm"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-green-600/10 to-emerald-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <motion.div 
+                              whileHover={{ rotate: 360 }}
+                              transition={{ duration: 0.8 }}
+                              className="text-5xl mb-3 group-hover:scale-125 transition-transform duration-500"
+                            >
+                              📞
+                            </motion.div>
+                            <span className="text-sm font-bold text-green-300 group-hover:text-green-200 transition-colors">Call</span>
+                          </motion.a>
+                        )}
+                        
+                        {/* WhatsApp */}
+                        {selectedService.whatsapp && (
+                          <motion.a
+                            href={`https://wa.me/${selectedService.whatsapp.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            initial={{ opacity: 0, y: 50, rotateX: 90 }}
+                            animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                            transition={{ delay: 1.7, duration: 0.6 }}
+                            whileHover={{ 
+                              scale: 1.1, 
+                              rotateY: 15,
+                              boxShadow: "0 20px 40px rgba(34, 197, 94, 0.5)"
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            className="group relative flex flex-col items-center p-6 rounded-2xl bg-gradient-to-br from-green-500/20 to-lime-500/20 border border-green-400/30 hover:border-green-400/60 transition-all duration-500 backdrop-blur-sm"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-green-600/10 to-lime-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <motion.div 
+                              whileHover={{ rotate: 360 }}
+                              transition={{ duration: 0.8 }}
+                              className="text-5xl mb-3 group-hover:scale-125 transition-transform duration-500"
+                            >
+                              💬
+                            </motion.div>
+                            <span className="text-sm font-bold text-green-300 group-hover:text-green-200 transition-colors">WhatsApp</span>
+                          </motion.a>
+                        )}
+                        
+                        {/* Telegram */}
+                        {selectedService.telegram && (
+                          <motion.a
+                            href={`https://t.me/${selectedService.telegram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            initial={{ opacity: 0, y: 50, rotateX: 90 }}
+                            animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                            transition={{ delay: 1.8, duration: 0.6 }}
+                            whileHover={{ 
+                              scale: 1.1, 
+                              rotateY: 15,
+                              boxShadow: "0 20px 40px rgba(59, 130, 246, 0.5)"
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            className="group relative flex flex-col items-center p-6 rounded-2xl bg-gradient-to-br from-blue-500/20 to-sky-500/20 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-500 backdrop-blur-sm"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-sky-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <motion.div 
+                              whileHover={{ rotate: 360 }}
+                              transition={{ duration: 0.8 }}
+                              className="text-5xl mb-3 group-hover:scale-125 transition-transform duration-500"
+                            >
+                              ✈️
+                            </motion.div>
+                            <span className="text-sm font-bold text-blue-300 group-hover:text-blue-200 transition-colors">Telegram</span>
+                          </motion.a>
+                        )}
+                        
+                        {/* Instagram */}
+                        {selectedService.instagram && (
+                          <motion.a
+                            href={`https://instagram.com/${selectedService.instagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            initial={{ opacity: 0, y: 50, rotateX: 90 }}
+                            animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                            transition={{ delay: 1.9, duration: 0.6 }}
+                            whileHover={{ 
+                              scale: 1.1, 
+                              rotateY: 15,
+                              boxShadow: "0 20px 40px rgba(236, 72, 153, 0.5)"
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            className="group relative flex flex-col items-center p-6 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-500 backdrop-blur-sm"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-pink-600/10 to-rose-600/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <motion.div 
+                              whileHover={{ rotate: 360 }}
+                              transition={{ duration: 0.8 }}
+                              className="text-5xl mb-3 group-hover:scale-125 transition-transform duration-500"
+                            >
+                              📷
+                            </motion.div>
+                            <span className="text-sm font-bold text-pink-300 group-hover:text-pink-200 transition-colors">Instagram</span>
+                          </motion.a>
+                        )}
+                      </div>
+                    </div>
                   </motion.div>
                 </div>
               </motion.div>

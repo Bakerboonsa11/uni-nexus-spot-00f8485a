@@ -21,6 +21,16 @@ service cloud.firestore {
       allow read, write: if true; // Temporarily allow all access for testing
     }
     
+    // Allow reading and writing jobs
+    match /jobs/{document=**} {
+      allow read, write: if true; // Temporarily allow all access for testing
+    }
+    
+    // Allow reading and writing job applications
+    match /jobApplications/{document=**} {
+      allow read, write: if true; // Temporarily allow all access for testing
+    }
+    
     // Courses - admins can write, authenticated users can read
     match /courses/{courseId} {
       allow read: if request.auth != null;

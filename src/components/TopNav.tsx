@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -9,16 +11,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
-import { GraduationCap, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu } from "lucide-react";
+import { GraduationCap, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu, Camera } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
 
 export const TopNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, userData, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -29,6 +39,54 @@ export const TopNav = () => {
     }
   };
 
+  const handleProfileUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!currentUser || !userData) return;
+
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const updateData: any = {
+        displayName: formData.get("displayName") as string,
+        bio: formData.get("bio") as string,
+        phone: formData.get("phone") as string,
+        location: formData.get("location") as string,
+      };
+
+      await updateDoc(doc(db, "users", currentUser.uid), updateData);
+      toast.success("Profile updated successfully!");
+      setProfileOpen(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Error updating profile");
+    }
+
+    setLoading(false);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    const validationError = validateFile(file, 'image');
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const photoURL = await uploadToCloudinary(file, 'image');
+      await updateDoc(doc(db, "users", currentUser.uid), { photoURL });
+      toast.success("Profile photo updated!");
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      toast.error("Error uploading photo");
+    }
+    setUploading(false);
+  };
+
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
@@ -36,6 +94,7 @@ export const TopNav = () => {
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/services", label: "Services", icon: Briefcase },
     { path: "/market", label: "Market", icon: ShoppingBag },
+    { path: "/jobs", label: "Jobs", icon: Briefcase },
   ];
 
   if (userData?.role === 'admin') {
@@ -142,8 +201,12 @@ export const TopNav = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10 border-2 border-primary/20">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
-                      {currentUser?.email?.[0]?.toUpperCase() || "U"}
+                    <AvatarImage 
+                      src={userData?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"} 
+                      alt="Profile"
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold">
+                      {userData?.displayName?.[0] || userData?.email?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -151,8 +214,12 @@ export const TopNav = () => {
               <DropdownMenuContent className="w-56 glass hidden md:block" align="end">
                 <div className="flex items-center gap-2 p-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
-                      {currentUser?.email?.[0]?.toUpperCase() || "U"}
+                    <AvatarImage 
+                      src={userData?.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"} 
+                      alt="Profile"
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs font-bold">
+                      {userData?.displayName?.[0] || userData?.email?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
@@ -161,9 +228,120 @@ export const TopNav = () => {
                   </div>
                 </div>
                 <DropdownMenuSeparator />
+                
+                <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <User className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent className="glass max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        Edit Profile
+                      </DialogTitle>
+                      <DialogDescription>
+                        Update your profile information and photo
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <form onSubmit={handleProfileUpdate} className="space-y-6">
+                      {/* Profile Photo */}
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="relative">
+                          <Avatar className="w-24 h-24 border-4 border-primary/30">
+                            <AvatarImage src={userData?.photoURL} />
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-2xl font-bold">
+                              {userData?.displayName?.[0] || userData?.email?.[0]?.toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/80 transition-colors">
+                            <Camera className="w-4 h-4 text-white" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePhotoUpload}
+                              className="hidden"
+                              disabled={uploading}
+                            />
+                          </label>
+                        </div>
+                        {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                      </div>
+
+                      {/* Form Fields */}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="displayName">Display Name</Label>
+                          <Input
+                            id="displayName"
+                            name="displayName"
+                            defaultValue={userData?.displayName || ""}
+                            placeholder="Your display name"
+                            className="glass"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="bio">Bio</Label>
+                          <Input
+                            id="bio"
+                            name="bio"
+                            defaultValue={userData?.bio || ""}
+                            placeholder="Tell us about yourself"
+                            className="glass"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone Number</Label>
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            defaultValue={userData?.phone || ""}
+                            placeholder="+251912345678"
+                            className="glass"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="location">Location</Label>
+                          <Input
+                            id="location"
+                            name="location"
+                            defaultValue={userData?.location || ""}
+                            placeholder="Your location"
+                            className="glass"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="flex-1 bg-gradient-to-r from-primary to-secondary"
+                        >
+                          {loading ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+
                 <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                  <User className="w-4 h-4 mr-2" />
-                  Profile
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/settings")}>
                   <SettingsIcon className="w-4 h-4 mr-2" />

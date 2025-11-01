@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Market from "./pages/Market";
+import Jobs from "./pages/Jobs";
 import Admin from "./pages/Admin";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/services" element={<Services />} />
               <Route path="/market" element={<Market />} />
+              <Route path="/jobs" element={<Jobs />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

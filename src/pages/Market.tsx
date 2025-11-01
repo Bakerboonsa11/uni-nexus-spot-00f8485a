@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { TopNav } from "@/components/TopNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,8 @@ interface Product {
 }
 
 const Market = () => {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const [user] = useAuthState(auth);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,6 +53,16 @@ const Market = () => {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (highlightId && products.length > 0) {
+      const product = products.find(p => p.id === highlightId);
+      if (product) {
+        setSelectedProduct(product);
+        setDetailsOpen(true);
+      }
+    }
+  }, [highlightId, products]);
 
   const loadProducts = async () => {
     try {
@@ -274,26 +287,26 @@ const Market = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price ($)</Label>
+                      <Label htmlFor="price">Price (ETB)</Label>
                       <Input 
                         id="price" 
                         name="price" 
                         type="number" 
                         step="0.01"
-                        placeholder="150.00"
+                        placeholder="3750.00"
                         required 
                         className="glass"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="originalPrice">Original Price ($)</Label>
+                      <Label htmlFor="originalPrice">Original Price (ETB)</Label>
                       <Input 
                         id="originalPrice" 
                         name="originalPrice" 
                         type="number" 
                         step="0.01"
-                        placeholder="200.00"
+                        placeholder="5000.00"
                         className="glass"
                       />
                     </div>
@@ -419,11 +432,11 @@ const Market = () => {
                     </div>
                     <div className="text-right">
                       <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        ${product.price}
+                        {product.price} ETB
                       </span>
                       {product.originalPrice && (
                         <p className="text-sm text-muted-foreground line-through">
-                          ${product.originalPrice}
+                          {product.originalPrice} ETB
                         </p>
                       )}
                     </div>
@@ -516,10 +529,10 @@ const Market = () => {
                 <div className="space-y-6">
                   {/* Price Section */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                    <span className="text-2xl sm:text-3xl font-bold text-primary">${selectedProduct.price}</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-primary">{selectedProduct.price} ETB</span>
                     {selectedProduct.originalPrice && (
                       <span className="text-lg text-muted-foreground line-through">
-                        ${selectedProduct.originalPrice}
+                        {selectedProduct.originalPrice} ETB
                       </span>
                     )}
                   </div>
@@ -571,10 +584,73 @@ const Market = () => {
                     </div>
                   </div>
 
-                  {/* Contact Button */}
-                  <Button className="w-full bg-gradient-to-r from-primary to-secondary">
-                    Contact Seller
-                  </Button>
+                  {/* Contact Options */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Contact Seller
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* Email */}
+                      <a
+                        href={`mailto:${selectedProduct.contactInfo}`}
+                        className="flex flex-col items-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors group"
+                      >
+                        <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📧</div>
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Email</span>
+                      </a>
+
+                      {/* Phone */}
+                      {selectedProduct.phone && (
+                        <a
+                          href={`tel:${selectedProduct.phone}`}
+                          className="flex flex-col items-center p-4 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-colors group"
+                        >
+                          <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📞</div>
+                          <span className="text-sm font-medium text-green-700 dark:text-green-300">Call</span>
+                        </a>
+                      )}
+                      
+                      {/* WhatsApp */}
+                      {selectedProduct.whatsapp && (
+                        <a
+                          href={`https://wa.me/${selectedProduct.whatsapp.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center p-4 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-colors group"
+                        >
+                          <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">💬</div>
+                          <span className="text-sm font-medium text-green-700 dark:text-green-300">WhatsApp</span>
+                        </a>
+                      )}
+                      
+                      {/* Telegram */}
+                      {selectedProduct.telegram && (
+                        <a
+                          href={`https://t.me/${selectedProduct.telegram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors group"
+                        >
+                          <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">✈️</div>
+                          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Telegram</span>
+                        </a>
+                      )}
+                      
+                      {/* Instagram */}
+                      {selectedProduct.instagram && (
+                        <a
+                          href={`https://instagram.com/${selectedProduct.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center p-4 rounded-xl bg-pink-500/10 border border-pink-500/20 hover:bg-pink-500/20 transition-colors group"
+                        >
+                          <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📷</div>
+                          <span className="text-sm font-medium text-pink-700 dark:text-pink-300">Instagram</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
