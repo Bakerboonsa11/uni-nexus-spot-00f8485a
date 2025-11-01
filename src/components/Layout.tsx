@@ -1,45 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { currentUser, loading } = useAuth();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (!session && location.pathname !== "/auth" && location.pathname !== "/") {
-          navigate("/");
-        } else if (session && location.pathname === "/auth") {
-          navigate("/home");
-        }
-        setLoading(false);
+    console.log("🔄 Layout: Auth state changed", { currentUser: currentUser?.email, pathname: location.pathname, loading });
+    
+    if (!loading) {
+      if (!currentUser && location.pathname !== "/auth" && location.pathname !== "/") {
+        console.log("🔄 Layout: No user, redirecting to auth");
+        navigate("/auth");
+      } else if (currentUser && location.pathname === "/auth") {
+        console.log("🔄 Layout: User logged in, redirecting to dashboard");
+        navigate("/dashboard");
       }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (!session && location.pathname !== "/auth" && location.pathname !== "/") {
-        navigate("/");
-      } else if (session && location.pathname === "/auth") {
-        navigate("/home");
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, location.pathname]);
+    }
+  }, [currentUser, loading, location.pathname, navigate]);
 
   if (loading) {
     return (

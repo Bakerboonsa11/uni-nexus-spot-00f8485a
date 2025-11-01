@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,25 +11,19 @@ import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Auth = () => {
+  console.log("🎨 Auth component rendering");
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const { currentUser, login, register } = useAuth();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/home");
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate("/home");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    console.log("🔄 Auth page: currentUser =", currentUser);
+    if (currentUser) {
+      console.log("🔄 Auth page: Redirecting to dashboard");
+      navigate("/dashboard");
+    }
+  }, [currentUser, navigate]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,15 +33,15 @@ const Auth = () => {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    console.log("🔐 Attempting login with:", { email });
 
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await login(email, password);
+      console.log("✅ Login successful");
       toast.success("Welcome back!");
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
+      toast.error(`Login failed: ${error.message}`);
     }
 
     setLoading(false);
@@ -60,25 +54,16 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const fullName = formData.get("fullName") as string;
-    const universityId = formData.get("universityId") as string;
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/home`,
-        data: {
-          full_name: fullName,
-          university_id: universityId,
-        },
-      },
-    });
+    console.log("📝 Attempting registration with:", { email });
 
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await register(email, password);
+      console.log("✅ Registration successful");
       toast.success("Account created successfully!");
+    } catch (error: any) {
+      console.error("❌ Registration error:", error);
+      toast.error(`Registration failed: ${error.message}`);
     }
 
     setLoading(false);

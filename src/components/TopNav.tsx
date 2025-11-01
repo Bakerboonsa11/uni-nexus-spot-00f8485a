@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -11,46 +11,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import { Sparkles, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Session } from "@supabase/supabase-js";
 
 export const TopNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user?.id) {
-        checkAdminStatus(session.user.id);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user?.id) {
-        checkAdminStatus(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-    
-    setIsAdmin(data?.role === "admin");
-  };
+  const { currentUser, userData, logout } = useAuth();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    try {
+      await logout();
+      navigate("/auth");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -62,7 +35,7 @@ export const TopNav = () => {
     { path: "/market", label: "Market", icon: ShoppingBag },
   ];
 
-  if (isAdmin) {
+  if (userData?.role === 'admin') {
     navItems.push({ path: "/admin", label: "Admin", icon: Shield });
   }
 
@@ -112,9 +85,8 @@ export const TopNav = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10 border-2 border-primary/20">
-                  <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
                   <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
-                    {session?.user?.email?.[0]?.toUpperCase() || "U"}
+                    {currentUser?.email?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -122,14 +94,13 @@ export const TopNav = () => {
             <DropdownMenuContent className="w-56 glass" align="end">
               <div className="flex items-center gap-2 p-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session?.user?.user_metadata?.avatar_url} />
                   <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
-                    {session?.user?.email?.[0]?.toUpperCase() || "U"}
+                    {currentUser?.email?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <p className="text-sm font-medium">{session?.user?.user_metadata?.full_name || "Student"}</p>
-                  <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
+                  <p className="text-sm font-medium">{userData?.email?.split('@')[0] || "Student"}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser?.email}</p>
                 </div>
               </div>
               <DropdownMenuSeparator />
