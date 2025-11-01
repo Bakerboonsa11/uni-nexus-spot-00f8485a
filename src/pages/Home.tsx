@@ -226,6 +226,95 @@ const Home = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* University Map Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mb-12"
+        >
+          <Card className="glass p-6 border hover:border-primary/40 transition-all duration-300">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Haramaya University Campus
+              </h2>
+              <p className="text-muted-foreground">Explore our beautiful campus in satellite view</p>
+            </div>
+            
+            <div className="relative rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
+              <iframe
+                id="campus-map"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15707.234567890123!2d42.0302!3d9.4102!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1631b8b8b8b8b8b8%3A0x1234567890abcdef!2sHaramaya%20University!5e1!3m2!1sen!2set!4v1699999999999!5m2!1sen!2set"
+                width="100%"
+                height="500"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full"
+              />
+              <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-sm font-medium">Satellite View</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <button 
+                onClick={() => {
+                  const iframe = document.getElementById('campus-map') as HTMLIFrameElement;
+                  iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3926.8!2d42.0302!3d9.4102!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMjQnMzYuNyJOIDQywrAwMScxMC43IkU!5e1!3m2!1sen!2set!4v1699999999999!5m2!1sen!2set";
+                }}
+                className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors cursor-pointer group"
+              >
+                <div className="text-2xl font-bold text-primary group-hover:scale-110 transition-transform">🏛️</div>
+                <div className="text-sm font-medium">Main Campus</div>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const iframe = document.getElementById('campus-map') as HTMLIFrameElement;
+                  iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3926.8!2d42.0312!3d9.4112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMjQnNDAuMyJOIDQywrAwMScxNi4zIkU!5e1!3m2!1sen!2set!4v1699999999999!5m2!1sen!2set";
+                }}
+                className="text-center p-3 rounded-lg bg-secondary/5 border border-secondary/10 hover:bg-secondary/10 transition-colors cursor-pointer group"
+              >
+                <div className="text-2xl font-bold text-secondary group-hover:scale-110 transition-transform">📚</div>
+                <div className="text-sm font-medium">Library</div>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const iframe = document.getElementById('campus-map') as HTMLIFrameElement;
+                  iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3926.8!2d42.0322!3d9.4122!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMjQnNDMuOSJOIDQywrAwMScxOS45IkU!5e1!3m2!1sen!2set!4v1699999999999!5m2!1sen!2set";
+                }}
+                className="text-center p-3 rounded-lg bg-accent/5 border border-accent/10 hover:bg-accent/10 transition-colors cursor-pointer group"
+              >
+                <div className="text-2xl font-bold text-accent group-hover:scale-110 transition-transform">🏠</div>
+                <div className="text-sm font-medium">Dormitories</div>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const iframe = document.getElementById('campus-map') as HTMLIFrameElement;
+                  iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3926.8!2d42.0332!3d9.4132!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMjQnNDcuNSJOIDQywrAwMScyMy41IkU!5e1!3m2!1sen!2set!4v1699999999999!5m2!1sen!2set";
+                }}
+                className="text-center p-3 rounded-lg bg-green-500/5 border border-green-500/10 hover:bg-green-500/10 transition-colors cursor-pointer group"
+              >
+                <div className="text-2xl font-bold text-green-600 group-hover:scale-110 transition-transform">🍽️</div>
+                <div className="text-sm font-medium">Cafeteria</div>
+              </button>
+            </div>
+            
+            <div className="mt-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Click on the buttons above to navigate to specific campus locations
+              </p>
+            </div>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
