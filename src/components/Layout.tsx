@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import {
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Layout = () => {
   const navigate = useNavigate();
@@ -21,8 +17,10 @@ export const Layout = () => {
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (!session && location.pathname !== "/auth") {
-          navigate("/auth");
+        if (!session && location.pathname !== "/auth" && location.pathname !== "/") {
+          navigate("/");
+        } else if (session && location.pathname === "/auth") {
+          navigate("/home");
         }
         setLoading(false);
       }
@@ -32,8 +30,10 @@ export const Layout = () => {
       setSession(session);
       setUser(session?.user ?? null);
 
-      if (!session && location.pathname !== "/auth") {
-        navigate("/auth");
+      if (!session && location.pathname !== "/auth" && location.pathname !== "/") {
+        navigate("/");
+      } else if (session && location.pathname === "/auth") {
+        navigate("/home");
       }
       setLoading(false);
     });
@@ -43,35 +43,17 @@ export const Layout = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto"></div>
+            <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl animate-pulse"></div>
+          </div>
+          <p className="text-muted-foreground animate-pulse">Loading your experience...</p>
         </div>
       </div>
     );
   }
 
-  if (!user || location.pathname === "/auth") {
-    return <Outlet />;
-  }
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-            <div className="flex h-14 items-center gap-4 px-4">
-              <SidebarTrigger />
-              <h1 className="text-lg font-semibold">University Hub</h1>
-            </div>
-          </header>
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
+  return <Outlet />;
 };

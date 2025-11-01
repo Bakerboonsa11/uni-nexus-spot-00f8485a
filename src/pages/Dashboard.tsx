@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { TopNav } from "@/components/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Briefcase, ShoppingBag, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Briefcase, ShoppingBag, TrendingUp, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({
     services: 0,
@@ -60,102 +65,188 @@ const Dashboard = () => {
     loadData();
   }, []);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="container py-8 space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Welcome back, {profile?.full_name}!</h1>
-        <p className="text-muted-foreground">Here's what's happening with your account</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 dark:from-background dark:via-background dark:to-accent/10">
+      <TopNav />
+      
+      <div className="max-w-7xl mx-auto px-6 py-12 space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-5xl font-bold mb-2">
+            Welcome back, <span className="bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
+              {profile?.full_name}!
+            </span>
+          </h1>
+          <p className="text-lg text-muted-foreground">Here's what's happening with your account</p>
+        </motion.div>
 
-      <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/20">
-        <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-              {profile?.full_name?.charAt(0) || "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="text-xl font-semibold">{profile?.full_name}</h3>
-            <p className="text-sm text-muted-foreground">{profile?.email}</p>
-            {profile?.university_id && (
-              <p className="text-sm text-muted-foreground">ID: {profile.university_id}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Profile Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card className="glass border hover:border-accent/40 transition-all duration-300 hover:shadow-lg hover:shadow-accent/20">
+            <CardHeader>
+              <CardTitle>Your Profile</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+              <Avatar className="h-20 w-20 border-4 border-accent/20">
+                <AvatarFallback className="bg-gradient-to-br from-accent to-primary text-white text-2xl">
+                  {profile?.full_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="text-2xl font-semibold">{profile?.full_name}</h3>
+                <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                {profile?.university_id && (
+                  <p className="text-sm text-muted-foreground">ID: {profile.university_id}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Your Services</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.services}</div>
-            <p className="text-xs text-muted-foreground">Active service listings</p>
-          </CardContent>
-        </Card>
+        {/* Stats Grid */}
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid gap-6 md:grid-cols-3"
+        >
+          <motion.div variants={itemVariants} whileHover={{ scale: 1.02, y: -5 }}>
+            <Card className="glass border hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Your Services</CardTitle>
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <Briefcase className="h-5 w-5 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  {stats.services}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Active service listings</p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Your Products</CardTitle>
-            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.products}</div>
-            <p className="text-xs text-muted-foreground">Listed on marketplace</p>
-          </CardContent>
-        </Card>
+          <motion.div variants={itemVariants} whileHover={{ scale: 1.02, y: -5 }}>
+            <Card className="glass border hover:border-secondary/40 transition-all duration-300 hover:shadow-lg hover:shadow-secondary/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Your Products</CardTitle>
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-secondary to-accent flex items-center justify-center">
+                  <ShoppingBag className="h-5 w-5 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
+                  {stats.products}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Listed on marketplace</p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.views}</div>
-            <p className="text-xs text-muted-foreground">Across all listings</p>
-          </CardContent>
-        </Card>
-      </div>
+          <motion.div variants={itemVariants} whileHover={{ scale: 1.02, y: -5 }}>
+            <Card className="glass border hover:border-accent/40 transition-all duration-300 hover:shadow-lg hover:shadow-accent/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+                  {stats.views}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Across all listings</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Get started with these common tasks</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <a href="/services" className="block p-3 rounded-lg border hover:bg-muted transition-colors">
-              <div className="font-medium">Browse Services</div>
-              <div className="text-sm text-muted-foreground">Find tutoring, design help, and more</div>
-            </a>
-            <a href="/market" className="block p-3 rounded-lg border hover:bg-muted transition-colors">
-              <div className="font-medium">Explore Marketplace</div>
-              <div className="text-sm text-muted-foreground">Buy or sell books, electronics, and goods</div>
-            </a>
-          </CardContent>
-        </Card>
+        {/* Action Cards */}
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid gap-6 md:grid-cols-2"
+        >
+          <motion.div variants={itemVariants}>
+            <Card className="glass border hover:border-primary/40 transition-all duration-300 h-full">
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Get started with these common tasks</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <motion.div 
+                  whileHover={{ x: 5 }}
+                  onClick={() => navigate("/services")}
+                  className="group cursor-pointer p-4 rounded-xl glass border border-border/50 hover:border-primary/40 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium group-hover:text-primary transition-colors">Browse Services</div>
+                      <div className="text-sm text-muted-foreground">Find tutoring, design help, and more</div>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                </motion.div>
+                <motion.div 
+                  whileHover={{ x: 5 }}
+                  onClick={() => navigate("/market")}
+                  className="group cursor-pointer p-4 rounded-xl glass border border-border/50 hover:border-secondary/40 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium group-hover:text-secondary transition-colors">Explore Marketplace</div>
+                      <div className="text-sm text-muted-foreground">Buy or sell books, electronics, and goods</div>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-secondary transition-colors" />
+                  </div>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-            <CardDescription>Tips to make the most of University Hub</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="p-3 rounded-lg bg-muted/50">
-              <div className="font-medium">Complete your profile</div>
-              <div className="text-sm text-muted-foreground">Add a bio and avatar to stand out</div>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <div className="font-medium">Post your first service</div>
-              <div className="text-sm text-muted-foreground">Share your skills with the community</div>
-            </div>
-          </CardContent>
-        </Card>
+          <motion.div variants={itemVariants}>
+            <Card className="glass border hover:border-accent/40 transition-all duration-300 h-full">
+              <CardHeader>
+                <CardTitle>Getting Started</CardTitle>
+                <CardDescription>Tips to make the most of University Hub</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-4 rounded-xl glass border border-accent/20">
+                  <div className="font-medium">Complete your profile</div>
+                  <div className="text-sm text-muted-foreground">Add a bio and avatar to stand out</div>
+                </div>
+                <div className="p-4 rounded-xl glass border border-accent/20">
+                  <div className="font-medium">Post your first service</div>
+                  <div className="text-sm text-muted-foreground">Share your skills with the community</div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );
