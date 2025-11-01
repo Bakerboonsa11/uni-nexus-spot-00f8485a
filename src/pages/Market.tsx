@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { TopNav } from "@/components/TopNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,194 +7,348 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Search, Package, MapPin, Calendar, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { db, auth } from "@/lib/firebase";
+import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
 
-const PRODUCT_CATEGORIES = ["Books", "Electronics", "Clothing", "Furniture", "Sports Equipment", "Other"];
+const PRODUCT_CATEGORIES = ["Books", "Electronics", "Clothing", "Furniture", "Sports Equipment", "Stationery", "Other"];
 const PRODUCT_CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
 
+interface Product {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  title: string;
+  description: string;
+  category: string;
+  condition: string;
+  price: number;
+  originalPrice?: number;
+  contactInfo: string;
+  images: string[];
+  location: string;
+  negotiable: boolean;
+  createdAt: any;
+}
+
 const Market = () => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [user] = useAuthState(auth);
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
 
   useEffect(() => {
     loadProducts();
   }, []);
 
   const loadProducts = async () => {
-    const { data, error } = await supabase
-      .from("products")
-      .select(`
-        *,
-        profiles (full_name, email)
-      `)
-      .eq("status", "available")
-      .order("created_at", { ascending: false });
-
-    if (error) {
+    try {
+      const querySnapshot = await getDocs(collection(db, "products"));
+      const productsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Product[];
+      setProducts(productsData);
+    } catch (error) {
+      console.error("Error loading products:", error);
       toast.error("Error loading products");
-    } else {
-      setProducts(data || []);
     }
+  };
+
+  const seedMockData = async () => {
+    if (!user) return;
+    
+    const mockProducts = [
+      {
+        userId: user.uid,
+        userName: "John Smith",
+        userEmail: "john.s@university.edu",
+        title: "iPhone 13 Pro Max - 256GB",
+        description: "Excellent condition iPhone 13 Pro Max in Pacific Blue.",
+        category: "Electronics",
+        condition: "Like New",
+        price: 850,
+        originalPrice: 1099,
+        contactInfo: "john.s@university.edu",
+        images: ["https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500"],
+        location: "Campus Dorm A",
+        negotiable: true,
+        createdAt: new Date()
+      }
+    ];
+
+    try {
+      for (const product of mockProducts) {
+        await addDoc(collection(db, "products"), product);
+      }
+      toast.success("Mock products seeded successfully!");
+      loadProducts();
+    } catch (error) {
+      console.error("Error seeding data:", error);
+      toast.error("Error seeding data");
+    }
+  };
+
+  const handleFileUpload = async (files: FileList, type: 'image' | 'video'): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const validationError = validateFile(file, type);
+      
+      if (validationError) {
+        toast.error(`${file.name}: ${validationError}`);
+        continue;
+      }
+
+      try {
+        setUploadingFiles(prev => [...prev, file.name]);
+        const url = await uploadToCloudinary(file, type);
+        uploadedUrls.push(url);
+        toast.success(`${file.name} uploaded successfully`);
+      } catch (error) {
+        console.error(`Upload failed for ${file.name}:`, error);
+        toast.error(`Failed to upload ${file.name}`);
+      } finally {
+        setUploadingFiles(prev => prev.filter(name => name !== file.name));
+      }
+    }
+
+    return uploadedUrls;
   };
 
   const handleCreateProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
-
-    const formData = new FormData(e.currentTarget);
-    const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       toast.error("You must be logged in");
-      setLoading(false);
       return;
     }
 
-    const { error } = await supabase.from("products").insert({
-      user_id: user.id,
-      name: formData.get("name") as string,
-      description: formData.get("description") as string,
-      category: formData.get("category") as string,
-      price: parseFloat(formData.get("price") as string),
-      condition: formData.get("condition") as string,
-      image_url: formData.get("imageUrl") as string || null,
-    });
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
 
-    if (error) {
-      toast.error("Error creating product listing");
-    } else {
+    try {
+      await addDoc(collection(db, "products"), {
+        userId: user.uid,
+        userName: user.displayName || "Anonymous",
+        userEmail: user.email,
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        category: formData.get("category") as string,
+        condition: formData.get("condition") as string,
+        price: parseFloat(formData.get("price") as string),
+        originalPrice: formData.get("originalPrice") ? parseFloat(formData.get("originalPrice") as string) : undefined,
+        contactInfo: formData.get("contact") as string,
+        images: (formData.get("images") as string).split(",").filter(url => url.trim()),
+        location: formData.get("location") as string,
+        negotiable: formData.get("negotiable") === "on",
+        createdAt: new Date()
+      });
+
       toast.success("Product listed successfully!");
       setOpen(false);
       loadProducts();
       (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error("Error creating product:", error);
+      toast.error("Error creating product");
     }
 
     setLoading(false);
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
+  const getConditionColor = (condition: string) => {
+    switch (condition) {
+      case "New": return "bg-green-100 text-green-800 border-green-200";
+      case "Like New": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Good": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Fair": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "Poor": return "bg-red-100 text-red-800 border-red-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/5 dark:from-background dark:via-background dark:to-secondary/10">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 dark:from-background dark:via-background dark:to-primary/10">
       <TopNav />
       
-      <div className="max-w-7xl mx-auto px-6 py-12 space-y-8">
-        {/* Header */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="space-y-6 sm:space-y-8">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center"
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
         >
-          <div>
-            <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent break-words">
               Marketplace
             </h1>
-            <p className="text-lg text-muted-foreground">Buy and sell goods within your university community</p>
+            <p className="text-base lg:text-lg text-muted-foreground">Buy and sell items within your university community</p>
           </div>
           
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="lg" className="gap-2 bg-gradient-to-r from-secondary to-accent hover:opacity-90 transition-opacity glow">
-                <Plus className="h-4 w-4" />
-                List Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl glass">
-              <DialogHeader>
-                <DialogTitle>Create Product Listing</DialogTitle>
-                <DialogDescription>Sell your items to fellow students</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateProduct} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Product Name</Label>
-                  <Input id="name" name="name" placeholder="e.g., Calculus Textbook 10th Edition" required className="glass" />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select name="category" required>
-                      <SelectTrigger className="glass">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRODUCT_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="condition">Condition</Label>
-                    <Select name="condition" required>
-                      <SelectTrigger className="glass">
-                        <SelectValue placeholder="Select condition" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRODUCT_CONDITIONS.map((cond) => (
-                          <SelectItem key={cond} value={cond}>{cond}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea 
-                    id="description" 
-                    name="description" 
-                    placeholder="Describe your product..."
-                    rows={4}
-                    required 
-                    className="glass"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
-                  <Input 
-                    id="price" 
-                    name="price" 
-                    type="number" 
-                    step="0.01"
-                    placeholder="50.00"
-                    required 
-                    className="glass"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Image URL (Optional)</Label>
-                  <Input 
-                    id="imageUrl" 
-                    name="imageUrl" 
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    className="glass"
-                  />
-                </div>
-
-                <Button type="submit" className="w-full bg-gradient-to-r from-secondary to-accent hover:opacity-90" disabled={loading}>
-                  {loading ? "Listing..." : "List Product"}
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button 
+              onClick={seedMockData}
+              variant="outline" 
+              size="sm"
+              className="gap-2 w-full sm:w-auto"
+            >
+              Seed Data
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity glow w-full sm:w-auto">
+                  <Plus className="h-4 w-4" />
+                  List Product
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-[95vw] sm:max-w-3xl glass max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
+                <DialogHeader>
+                  <DialogTitle>List New Product</DialogTitle>
+                  <DialogDescription>Sell your items to fellow students</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateProduct} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Product Title</Label>
+                      <Input id="title" name="title" placeholder="e.g., iPhone 13 Pro Max" required className="glass" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select name="category" required>
+                        <SelectTrigger className="glass">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRODUCT_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea 
+                      id="description" 
+                      name="description" 
+                      placeholder="Describe your product in detail..."
+                      rows={4}
+                      required 
+                      className="glass resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="condition">Condition</Label>
+                      <Select name="condition" required>
+                        <SelectTrigger className="glass">
+                          <SelectValue placeholder="Select condition" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRODUCT_CONDITIONS.map((condition) => (
+                            <SelectItem key={condition} value={condition}>{condition}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price ($)</Label>
+                      <Input 
+                        id="price" 
+                        name="price" 
+                        type="number" 
+                        step="0.01"
+                        placeholder="150.00"
+                        required 
+                        className="glass"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="originalPrice">Original Price ($)</Label>
+                      <Input 
+                        id="originalPrice" 
+                        name="originalPrice" 
+                        type="number" 
+                        step="0.01"
+                        placeholder="200.00"
+                        className="glass"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input 
+                        id="location" 
+                        name="location" 
+                        placeholder="e.g., Campus Dorm A, Room 205"
+                        required 
+                        className="glass"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contact">Contact Information</Label>
+                      <Input 
+                        id="contact" 
+                        name="contact" 
+                        placeholder="email@university.edu"
+                        required 
+                        className="glass"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="images">Product Images</Label>
+                    <Input id="product-images" type="file" multiple accept="image/*" className="glass" />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="negotiable" name="negotiable" className="rounded" />
+                    <Label htmlFor="negotiable">Price is negotiable</Label>
+                  </div>
+
+                  {uploadingFiles.length > 0 && (
+                    <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded">
+                      Uploading: {uploadingFiles.join(", ")}...
+                    </div>
+                  )}
+
+                  <Button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90" disabled={loading || uploadingFiles.length > 0}>
+                    {loading ? "Listing..." : "List Product"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </motion.div>
 
-        {/* Search and Filter */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -225,12 +378,11 @@ const Market = () => {
           </Select>
         </motion.div>
 
-        {/* Products Grid */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         >
           {filteredProducts.map((product, index) => (
             <motion.div
@@ -240,46 +392,88 @@ const Market = () => {
               transition={{ delay: 0.1 * index }}
               whileHover={{ y: -5, scale: 1.02 }}
             >
-              <Card className="glass border hover:border-secondary/40 transition-all duration-300 overflow-hidden h-full hover:shadow-lg hover:shadow-secondary/20">
-                {product.image_url ? (
-                  <div className="aspect-video relative overflow-hidden">
+              <Card className="glass border hover:border-primary/40 transition-all duration-300 h-full hover:shadow-lg hover:shadow-primary/20 group">
+                {/* Thumbnail Image */}
+                {product.images && product.images.length > 0 && (
+                  <div className="relative h-48 overflow-hidden rounded-t-lg">
                     <img 
-                      src={product.image_url} 
-                      alt={product.name}
-                      className="object-cover w-full h-full"
+                      src={product.images[0]} 
+                      alt={product.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                  </div>
-                ) : (
-                  <div className="aspect-video bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center">
-                    <Package className="h-16 w-16 text-muted-foreground" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
+                      {product.images.length} {product.images.length === 1 ? 'image' : 'images'}
+                    </div>
+                    {product.negotiable && (
+                      <div className="absolute top-2 left-2 bg-green-500/90 text-white px-2 py-1 rounded-full text-xs">
+                        Negotiable
+                      </div>
+                    )}
                   </div>
                 )}
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-xl">{product.name}</CardTitle>
-                    <span className="text-2xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">
-                      ${product.price}
-                    </span>
+                
+                <CardHeader className={product.images && product.images.length > 0 ? "pb-2" : ""}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center">
+                      <Package className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        ${product.price}
+                      </span>
+                      {product.originalPrice && (
+                        <p className="text-sm text-muted-foreground line-through">
+                          ${product.originalPrice}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <CardDescription className="flex gap-2">
-                    <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-secondary/20">
+                  <CardTitle className="text-xl">{product.title}</CardTitle>
+                  <CardDescription className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-primary/20">
                       {product.category}
                     </span>
-                    <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-accent/20">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${getConditionColor(product.condition)}`}>
                       {product.condition}
                     </span>
+                    {product.negotiable && (
+                      <span className="text-xs text-green-600 font-medium">Negotiable</span>
+                    )}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                  <div className="mt-4 pt-4 border-t border-border/50">
-                    <p className="text-sm font-medium">Sold by: {product.profiles?.full_name}</p>
-                    <p className="text-xs text-muted-foreground">{product.views || 0} views</p>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p>
+                  
+                  {product.images?.length > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <ImageIcon className="h-3 w-3" />
+                      {product.images.length} images
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-border/50 space-y-1">
+                    <div className="flex items-center gap-1 text-sm">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground text-xs">{product.location}</span>
+                    </div>
+                    <p className="text-sm font-medium">Seller: {product.userName}</p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {product.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
+                    </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full glass hover:bg-secondary/10">
-                    Contact Seller
+                  <Button 
+                    variant="outline" 
+                    className="w-full glass hover:bg-primary/10"
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setDetailsOpen(true);
+                    }}
+                  >
+                    View Details
                   </Button>
                 </CardFooter>
               </Card>
@@ -299,6 +493,95 @@ const Market = () => {
             <p className="text-muted-foreground text-lg">No products found matching your criteria</p>
           </motion.div>
         )}
+
+        {/* Product Details Modal */}
+        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl glass max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
+            {selectedProduct && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-xl sm:text-2xl">{selectedProduct.title}</DialogTitle>
+                  <DialogDescription className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center rounded-full glass px-3 py-1 text-sm font-medium border border-primary/20">
+                      {selectedProduct.category}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium border ${getConditionColor(selectedProduct.condition)}`}>
+                      {selectedProduct.condition}
+                    </span>
+                    {selectedProduct.negotiable && (
+                      <span className="text-sm text-green-600 font-medium">Negotiable</span>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-6">
+                  {/* Price Section */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                    <span className="text-2xl sm:text-3xl font-bold text-primary">${selectedProduct.price}</span>
+                    {selectedProduct.originalPrice && (
+                      <span className="text-lg text-muted-foreground line-through">
+                        ${selectedProduct.originalPrice}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Images Gallery */}
+                  {selectedProduct.images && selectedProduct.images.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold">Product Images</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                        {selectedProduct.images.map((image, index) => (
+                          <div key={index} className="aspect-square rounded-lg overflow-hidden border">
+                            <img 
+                              src={image} 
+                              alt={`Product ${index + 1}`}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                              onClick={() => window.open(image, '_blank')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Description</h3>
+                    <p className="text-muted-foreground">{selectedProduct.description}</p>
+                  </div>
+
+                  {/* Product Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">Product Details</h3>
+                      <div className="space-y-1">
+                        <p><span className="font-medium">Category:</span> {selectedProduct.category}</p>
+                        <p><span className="font-medium">Condition:</span> {selectedProduct.condition}</p>
+                        <p><span className="font-medium">Location:</span> {selectedProduct.location}</p>
+                        <p><span className="font-medium">Negotiable:</span> {selectedProduct.negotiable ? 'Yes' : 'No'}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">Seller Information</h3>
+                      <div className="space-y-1">
+                        <p><span className="font-medium">Seller:</span> {selectedProduct.userName}</p>
+                        <p><span className="font-medium">Contact:</span> {selectedProduct.contactInfo}</p>
+                        <p><span className="font-medium">Listed:</span> {selectedProduct.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Button */}
+                  <Button className="w-full bg-gradient-to-r from-primary to-secondary">
+                    Contact Seller
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Briefcase, ShoppingBag, TrendingUp, Sparkles, ArrowRight, Users, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -20,17 +21,22 @@ const Home = () => {
   }, []);
 
   const fetchStats = async () => {
-    const [servicesCount, productsCount, usersCount] = await Promise.all([
-      supabase.from("services").select("id", { count: "exact", head: true }),
-      supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true })
-    ]);
+    try {
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      console.log("Users collection size:", usersSnapshot.size);
+      console.log("Users docs:", usersSnapshot.docs.map(doc => doc.id));
+      
+      const servicesSnapshot = await getDocs(collection(db, "services"));
+      const productsSnapshot = await getDocs(collection(db, "products"));
 
-    setStats({
-      services: servicesCount.count || 0,
-      products: productsCount.count || 0,
-      users: usersCount.count || 0
-    });
+      setStats({
+        services: servicesSnapshot.size,
+        products: productsSnapshot.size,
+        users: usersSnapshot.size
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
   };
 
   const quickActions = [
