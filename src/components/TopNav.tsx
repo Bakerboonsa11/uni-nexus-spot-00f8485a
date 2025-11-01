@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
-import { Sparkles, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu } from "lucide-react";
+import { GraduationCap, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu } from "lucide-react";
 import { useState } from "react";
 
 export const TopNav = () => {
@@ -32,7 +32,7 @@ export const TopNav = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { path: "/home", label: "Home", icon: Sparkles },
+    { path: "/home", label: "Home", icon: GraduationCap },
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/services", label: "Services", icon: Briefcase },
     { path: "/market", label: "Market", icon: ShoppingBag },
@@ -62,7 +62,7 @@ export const TopNav = () => {
             onClick={() => navigate("/home")}
           >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow">
-              <Sparkles className="w-6 h-6 text-white" />
+              <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               University Hub
