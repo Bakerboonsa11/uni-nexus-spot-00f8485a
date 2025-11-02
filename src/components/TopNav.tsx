@@ -175,6 +175,18 @@ export const TopNav = () => {
                   ))}
                   
                   <div className="border-t pt-4 mt-4">
+                    <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="justify-start w-full"
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          Edit Profile
+                        </Button>
+                      </DialogTrigger>
+                    </Dialog>
+                    
                     <Button
                       variant="ghost"
                       onClick={() => handleNavigation("/settings")}
@@ -211,7 +223,7 @@ export const TopNav = () => {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 glass hidden md:block" align="end">
+              <DropdownMenuContent className="w-56 glass" align="end">
                 <div className="flex items-center gap-2 p-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
@@ -236,7 +248,7 @@ export const TopNav = () => {
                       Edit Profile
                     </DropdownMenuItem>
                   </DialogTrigger>
-                  <DialogContent className="glass max-w-md">
+                  <DialogContent className="glass max-w-[95vw] sm:max-w-md mx-4">
                     <DialogHeader>
                       <DialogTitle className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                         Edit Profile

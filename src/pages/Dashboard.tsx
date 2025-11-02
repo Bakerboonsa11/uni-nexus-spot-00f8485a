@@ -397,30 +397,31 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center"
+          className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4"
         >
           <div>
-            <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               My Dashboard
             </h1>
-            <p className="text-lg text-muted-foreground">Manage your services and products</p>
+            <p className="text-base lg:text-lg text-muted-foreground">Manage your services and products</p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Dialog open={serviceDialogOpen} onOpenChange={setServiceDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2 bg-gradient-to-r from-primary to-secondary">
+                <Button className="gap-2 bg-gradient-to-r from-primary to-secondary w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  Create Service
+                  <span className="hidden sm:inline">Create Service</span>
+                  <span className="sm:hidden">Service</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl glass max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-[95vw] sm:max-w-3xl glass max-h-[90vh] overflow-y-auto mx-4">
                 <DialogHeader>
                   <DialogTitle>Create New Service</DialogTitle>
                   <DialogDescription>Share your skills with the community</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleCreateService} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Service Title</Label>
                       <Input id="title" name="title" required className="glass" />
@@ -445,7 +446,7 @@ const Dashboard = () => {
                     <Textarea id="description" name="description" required className="glass" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="price">Price (ETB)</Label>
                       <Input id="price" name="price" type="number" step="0.01" required className="glass" />
@@ -456,7 +457,7 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone</Label>
                       <Input id="phone" name="phone" type="tel" placeholder="+251912345678" className="glass" />
@@ -467,7 +468,7 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="whatsapp">WhatsApp</Label>
                       <Input id="whatsapp" name="whatsapp" type="tel" placeholder="+251912345678" className="glass" />
@@ -493,7 +494,7 @@ const Dashboard = () => {
                     <Input id="availability" name="availability" className="glass" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="service-images">Images</Label>
                       <Input id="service-images" type="file" multiple accept="image/*" className="glass" />
@@ -519,18 +520,19 @@ const Dashboard = () => {
 
             <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  List Product
+                  <span className="hidden sm:inline">List Product</span>
+                  <span className="sm:hidden">Product</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl glass max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-[95vw] sm:max-w-3xl glass max-h-[90vh] overflow-y-auto mx-4">
                 <DialogHeader>
                   <DialogTitle>List New Product</DialogTitle>
                   <DialogDescription>Sell items to fellow students</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleCreateProduct} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Product Title</Label>
                       <Input id="title" name="title" required className="glass" />
@@ -555,7 +557,7 @@ const Dashboard = () => {
                     <Textarea id="description" name="description" required className="glass" />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="condition">Condition</Label>
                       <Select name="condition" required>
@@ -579,7 +581,7 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="location">Location</Label>
                       <Input id="location" name="location" required className="glass" />
@@ -590,7 +592,7 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone</Label>
                       <Input id="phone" name="phone" type="tel" placeholder="+251912345678" className="glass" />
@@ -697,11 +699,11 @@ const Dashboard = () => {
 
         {/* Listings Tabs */}
         <Tabs defaultValue="services" className="space-y-6">
-          <TabsList className="glass">
-            <TabsTrigger value="services">My Services</TabsTrigger>
-            <TabsTrigger value="products">My Products</TabsTrigger>
-            <TabsTrigger value="jobs">My Jobs</TabsTrigger>
-            <TabsTrigger value="applications">Applications ({applications.length})</TabsTrigger>
+          <TabsList className="glass w-full grid grid-cols-2 lg:grid-cols-4 h-auto p-1">
+            <TabsTrigger value="services" className="text-xs sm:text-sm">My Services</TabsTrigger>
+            <TabsTrigger value="products" className="text-xs sm:text-sm">My Products</TabsTrigger>
+            <TabsTrigger value="jobs" className="text-xs sm:text-sm">My Jobs</TabsTrigger>
+            <TabsTrigger value="applications" className="text-xs sm:text-sm">Apps ({applications.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="services" className="space-y-4">
@@ -727,11 +729,11 @@ const Dashboard = () => {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     
-                    <div className="relative flex items-center justify-between p-4">
-                      <div className="flex items-center space-x-4 flex-1">
+                    <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+                      <div className="flex items-center space-x-4 flex-1 min-w-0">
                         <motion.div
                           whileHover={{ scale: 1.1, rotate: 5 }}
-                          className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border border-primary/20"
+                          className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border border-primary/20 flex-shrink-0"
                         >
                           <Briefcase className="w-6 h-6 text-primary" />
                         </motion.div>
@@ -740,10 +742,10 @@ const Dashboard = () => {
                           <h4 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
                             {service.title}
                           </h4>
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-sm text-muted-foreground line-clamp-2 sm:truncate">
                             {service.description}
                           </p>
-                          <div className="flex items-center gap-4 mt-1">
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
                               {service.category}
                             </span>
@@ -754,9 +756,9 @@ const Dashboard = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="text-2xl font-black bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                      <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-4">
+                        <div className="text-left sm:text-right">
+                          <div className="text-xl sm:text-2xl font-black bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
                             {service.price} ETB
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -768,7 +770,7 @@ const Dashboard = () => {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => navigate(`/services?highlight=${service.id}`)}
-                          className="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
+                          className="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors flex-shrink-0"
                         >
                           <Eye className="w-4 h-4 text-primary" />
                         </motion.button>

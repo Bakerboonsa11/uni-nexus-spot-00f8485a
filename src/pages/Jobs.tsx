@@ -8,16 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, MapPin, Clock, DollarSign, Users, Building, Search, Filter, Plus, Sparkles } from "lucide-react";
+import { Briefcase, MapPin, Clock, DollarSign, Users, Building, Search, Filter, Plus, Sparkles, User, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
 
 interface Job {
   id: string;
+  userId?: string;
+  userEmail?: string;
+  userPhotoURL?: string;
   title: string;
   company: string;
   location: string;
@@ -153,6 +157,8 @@ const Jobs = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [applicationOpen, setApplicationOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
 
   useEffect(() => {
     loadJobs();
@@ -172,15 +178,44 @@ const Jobs = () => {
     try {
       const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
-      const jobsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Job[];
+      const jobsData = await Promise.all(
+        querySnapshot.docs.map(async (jobDoc) => {
+          const jobData = { id: jobDoc.id, ...jobDoc.data() } as Job;
+          
+          // Fetch user profile data if job has userId
+          if (jobData.userId) {
+            try {
+              const userDoc = await getDoc(doc(db, "users", jobData.userId));
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                jobData.userPhotoURL = userData.photoURL;
+              }
+            } catch (error) {
+              console.error("Error fetching user data:", error);
+            }
+          }
+          
+          return jobData;
+        })
+      );
       setJobs(jobsData);
       console.log("Loaded jobs:", jobsData.length);
     } catch (error) {
       console.error("Error loading jobs:", error);
       toast.error("Error loading jobs");
+    }
+  };
+
+  const showUserProfile = async (userId: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        setSelectedUserProfile(userDoc.data());
+        setUserProfileOpen(true);
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      toast.error("Error loading user profile");
     }
   };
 
@@ -293,29 +328,6 @@ const Jobs = () => {
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Discover amazing career opportunities from top companies across Ethiopia
             </p>
-            
-            {/* Seed Data Button */}
-            {jobs.length === 0 && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
-              >
-                <Button
-                  onClick={seedJobs}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 hover:from-yellow-600 hover:via-orange-600 hover:to-red-600 text-white font-bold px-8 py-4 rounded-2xl shadow-2xl hover:shadow-yellow-500/50 transition-all duration-300 transform hover:scale-105"
-                >
-                  <motion.div
-                    animate={{ rotate: loading ? 360 : 0 }}
-                    transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
-                  >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                  </motion.div>
-                  {loading ? "Adding Magic Jobs..." : "✨ Add Sample Jobs ✨"}
-                </Button>
-              </motion.div>
-            )}
           </motion.div>
         </motion.div>
 
@@ -370,8 +382,21 @@ const Jobs = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="relative z-10">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                          <Building className="w-6 h-6 text-primary" />
+                        <div className="flex items-center gap-3">
+                          {job.userId && (
+                            <Avatar 
+                              className="w-10 h-10 cursor-pointer border-2 border-primary/20 hover:border-primary/40 transition-colors"
+                              onClick={() => showUserProfile(job.userId)}
+                            >
+                              <AvatarImage src={job.userPhotoURL} />
+                              <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs font-bold">
+                                {job.userEmail?.[0]?.toUpperCase() || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                            <Building className="w-6 h-6 text-primary" />
+                          </div>
                         </div>
                         <Badge variant={job.remote ? "default" : "secondary"} className="text-xs">
                           {job.remote ? "Remote" : "On-site"}
@@ -382,6 +407,11 @@ const Jobs = () => {
                       </CardTitle>
                       <CardDescription className="font-medium text-primary">
                         {job.company}
+                        {job.userId && job.userEmail && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            by {job.userEmail.split('@')[0]}
+                          </span>
+                        )}
                       </CardDescription>
                     </div>
                   </CardHeader>
@@ -687,6 +717,59 @@ const Jobs = () => {
                 </div>
               </form>
             </motion.div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* User Profile Popup */}
+      <Dialog open={userProfileOpen} onOpenChange={setUserProfileOpen}>
+        <DialogContent className="glass max-w-md">
+          <DialogHeader>
+            <DialogTitle className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              User Profile
+            </DialogTitle>
+          </DialogHeader>
+          {selectedUserProfile && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-16 h-16 border-2 border-primary/20">
+                  <AvatarImage src={selectedUserProfile.photoURL} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-lg font-bold">
+                    {selectedUserProfile.displayName?.[0] || selectedUserProfile.email?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedUserProfile.displayName || selectedUserProfile.email?.split('@')[0]}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedUserProfile.email}</p>
+                </div>
+              </div>
+              
+              {selectedUserProfile.bio && (
+                <div>
+                  <h4 className="font-medium mb-1">Bio</h4>
+                  <p className="text-sm text-muted-foreground">{selectedUserProfile.bio}</p>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                {selectedUserProfile.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-primary" />
+                    <span className="text-sm">{selectedUserProfile.phone}</span>
+                  </div>
+                )}
+                {selectedUserProfile.location && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    <span className="text-sm">{selectedUserProfile.location}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-primary" />
+                  <span className="text-sm">{selectedUserProfile.email}</span>
+                </div>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>

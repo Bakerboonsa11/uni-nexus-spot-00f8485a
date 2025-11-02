@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Star, Briefcase, Play, Image as ImageIcon, TrendingUp, Calendar, Users } from "lucide-react";
+import { Plus, Search, Star, Briefcase, Play, Image as ImageIcon, TrendingUp, Calendar, Users, User, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 const SERVICE_CATEGORIES = ["Tutoring", "Design", "Writing", "Programming", "Event Planning", "Photography", "Music", "Fitness", "Other"];
@@ -22,6 +23,7 @@ interface Service {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhotoURL?: string;
   title: string;
   description: string;
   category: string;
@@ -48,6 +50,8 @@ const Services = () => {
   const [loading, setLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
 
   useEffect(() => {
     loadServices();
@@ -67,14 +71,43 @@ const Services = () => {
     try {
       const q = query(collection(db, "services"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
-      const servicesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
+      const servicesData = await Promise.all(
+        querySnapshot.docs.map(async (serviceDoc) => {
+          const serviceData = { id: serviceDoc.id, ...serviceDoc.data() } as Service;
+          
+          // Fetch user profile data
+          if (serviceData.userId) {
+            try {
+              const userDoc = await getDoc(doc(db, "users", serviceData.userId));
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                serviceData.userPhotoURL = userData.photoURL;
+              }
+            } catch (error) {
+              console.error("Error fetching user data:", error);
+            }
+          }
+          
+          return serviceData;
+        })
+      );
       setServices(servicesData);
     } catch (error) {
       console.error("Error loading services:", error);
       toast.error("Error loading services");
+    }
+  };
+
+  const showUserProfile = async (userId: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        setSelectedUserProfile(userDoc.data());
+        setUserProfileOpen(true);
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      toast.error("Error loading user profile");
     }
   };
 
@@ -218,14 +251,6 @@ const Services = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button 
-              onClick={seedMockData}
-              variant="outline" 
-              size="sm"
-              className="gap-2 w-full sm:w-auto"
-            >
-              Seed Data
-            </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity glow w-full sm:w-auto">
@@ -425,8 +450,19 @@ const Services = () => {
                 
                 <CardHeader className={service.images && service.images.length > 0 ? "pb-2" : ""}>
                   <div className="flex justify-between items-start mb-2">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                      <Briefcase className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-3">
+                      <Avatar 
+                        className="w-10 h-10 cursor-pointer border-2 border-primary/20 hover:border-primary/40 transition-colors"
+                        onClick={() => showUserProfile(service.userId)}
+                      >
+                        <AvatarImage src={service.userPhotoURL} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs font-bold">
+                          {service.userName?.[0] || service.userEmail?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <Briefcase className="w-6 h-6 text-white" />
+                      </div>
                     </div>
                     <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                       {service.price} ETB
@@ -437,6 +473,7 @@ const Services = () => {
                     <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-primary/20">
                       {service.category}
                     </span>
+                    <span className="text-xs text-muted-foreground">by {service.userName || service.userEmail?.split('@')[0]}</span>
                     {service.rating > 0 && (
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -1004,6 +1041,59 @@ const Services = () => {
                   </motion.div>
                 </div>
               </motion.div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* User Profile Popup */}
+        <Dialog open={userProfileOpen} onOpenChange={setUserProfileOpen}>
+          <DialogContent className="glass max-w-md">
+            <DialogHeader>
+              <DialogTitle className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                User Profile
+              </DialogTitle>
+            </DialogHeader>
+            {selectedUserProfile && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-16 h-16 border-2 border-primary/20">
+                    <AvatarImage src={selectedUserProfile.photoURL} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-lg font-bold">
+                      {selectedUserProfile.displayName?.[0] || selectedUserProfile.email?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedUserProfile.displayName || selectedUserProfile.email?.split('@')[0]}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedUserProfile.email}</p>
+                  </div>
+                </div>
+                
+                {selectedUserProfile.bio && (
+                  <div>
+                    <h4 className="font-medium mb-1">Bio</h4>
+                    <p className="text-sm text-muted-foreground">{selectedUserProfile.bio}</p>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  {selectedUserProfile.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-primary" />
+                      <span className="text-sm">{selectedUserProfile.phone}</span>
+                    </div>
+                  )}
+                  {selectedUserProfile.location && (
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" />
+                      <span className="text-sm">{selectedUserProfile.location}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <span className="text-sm">{selectedUserProfile.email}</span>
+                  </div>
+                </div>
+              </div>
             )}
           </DialogContent>
         </Dialog>
