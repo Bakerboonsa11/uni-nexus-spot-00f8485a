@@ -10,12 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, MapPin, Clock, DollarSign, Users, Building, Search, Filter, Plus, Sparkles, User, Mail, Phone } from "lucide-react";
+import { Briefcase, MapPin, Clock, DollarSign, Users, Building, Search, Filter, Plus, Sparkles, User, Mail, Phone, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import PremiumPaymentModal from "@/components/PremiumPaymentModal";
 
 interface Job {
   id: string;
@@ -150,6 +152,7 @@ const Jobs = () => {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
   const [user] = useAuthState(auth);
+  const { userData } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -159,6 +162,7 @@ const Jobs = () => {
   const [loading, setLoading] = useState(false);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     loadJobs();
@@ -372,6 +376,10 @@ const Jobs = () => {
                 transition={{ delay: index * 0.1, duration: 0.5 }}
                 whileHover={{ y: -10, scale: 1.02 }}
                 onClick={() => {
+                  if (!userData?.isPremium) {
+                    setPaymentModalOpen(true);
+                    return;
+                  }
                   setSelectedJob(job);
                   setDetailsOpen(true);
                 }}
@@ -419,32 +427,49 @@ const Jobs = () => {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
-                        {job.location}
+                        {userData?.isPremium ? job.location : "Premium Required"}
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {job.type}
+                        {userData?.isPremium ? job.type : "Premium Required"}
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-green-500" />
-                      <span className="font-bold text-green-600">{job.salary}</span>
+                      <span className="font-bold text-green-600">
+                        {userData?.isPremium ? job.salary : "Premium Required"}
+                      </span>
                     </div>
 
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {job.description}
+                      {userData?.isPremium ? job.description : "Upgrade to premium to view job details and apply for positions."}
                     </p>
 
+                    {!userData?.isPremium && (
+                      <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                        <Lock className="w-4 h-4 text-primary" />
+                        <span className="text-sm text-primary font-medium">Premium Required</span>
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-2">
-                      {job.requirements?.slice(0, 3).map((req, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                          {req}
-                        </Badge>
-                      ))}
-                      {job.requirements?.length > 3 && (
+                      {userData?.isPremium ? (
+                        <>
+                          {job.requirements?.slice(0, 3).map((req, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {req}
+                            </Badge>
+                          ))}
+                          {job.requirements?.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{job.requirements.length - 3} more
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
                         <Badge variant="outline" className="text-xs">
-                          +{job.requirements.length - 3} more
+                          Premium Required
                         </Badge>
                       )}
                     </div>
@@ -551,11 +576,17 @@ const Jobs = () => {
                   </div>
 
                   <Button 
-                    onClick={() => setApplicationOpen(true)}
+                    onClick={() => {
+                      if (!userData?.isPremium) {
+                        setPaymentModalOpen(true);
+                        return;
+                      }
+                      setApplicationOpen(true);
+                    }}
                     className="w-full bg-gradient-to-r from-primary to-secondary"
                   >
                     <Users className="w-4 h-4 mr-2" />
-                    Apply Now
+                    {userData?.isPremium ? "Apply Now" : "Upgrade to Apply"}
                   </Button>
                 </div>
               </div>
@@ -773,6 +804,12 @@ const Jobs = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Premium Payment Modal */}
+      <PremiumPaymentModal 
+        open={paymentModalOpen} 
+        onOpenChange={setPaymentModalOpen} 
+      />
     </div>
   );
 };

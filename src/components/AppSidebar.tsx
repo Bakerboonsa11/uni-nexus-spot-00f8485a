@@ -1,6 +1,6 @@
 import { Home, Briefcase, ShoppingBag, Settings, LogOut, Shield } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import {

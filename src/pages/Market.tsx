@@ -9,13 +9,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Package, MapPin, Calendar, Image as ImageIcon, User, Mail, Phone } from "lucide-react";
+import { Plus, Search, Package, MapPin, Calendar, Image as ImageIcon, User, Mail, Phone, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
+import { useAuth } from "@/contexts/AuthContext";
+import PremiumPaymentModal from "@/components/PremiumPaymentModal";
 
 const PRODUCT_CATEGORIES = ["Books", "Electronics", "Clothing", "Furniture", "Sports Equipment", "Stationery", "Other"];
 const PRODUCT_CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
@@ -43,6 +45,7 @@ const Market = () => {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
   const [user] = useAuthState(auth);
+  const { userData } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -53,6 +56,7 @@ const Market = () => {
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -492,9 +496,18 @@ const Market = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {userData?.isPremium ? product.description : "Upgrade to premium to view product details and contact sellers."}
+                  </p>
                   
-                  {product.images?.length > 0 && (
+                  {!userData?.isPremium && (
+                    <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                      <Lock className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-primary font-medium">Premium Required</span>
+                    </div>
+                  )}
+                  
+                  {userData?.isPremium && product.images?.length > 0 && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <ImageIcon className="h-3 w-3" />
                       {product.images.length} images
@@ -504,7 +517,9 @@ const Market = () => {
                   <div className="pt-2 border-t border-border/50 space-y-1">
                     <div className="flex items-center gap-1 text-sm">
                       <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground text-xs">{product.location}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {userData?.isPremium ? product.location : "Premium Required"}
+                      </span>
                     </div>
                     <p className="text-sm font-medium">Seller: {product.userName}</p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -518,11 +533,15 @@ const Market = () => {
                     variant="outline" 
                     className="w-full glass hover:bg-primary/10"
                     onClick={() => {
+                      if (!userData?.isPremium) {
+                        setPaymentModalOpen(true);
+                        return;
+                      }
                       setSelectedProduct(product);
                       setDetailsOpen(true);
                     }}
                   >
-                    View Details
+                    {userData?.isPremium ? "View Details" : "Upgrade to View"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -746,6 +765,12 @@ const Market = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Premium Payment Modal */}
+        <PremiumPaymentModal 
+          open={paymentModalOpen} 
+          onOpenChange={setPaymentModalOpen} 
+        />
         </div>
       </div>
     </div>

@@ -9,13 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Briefcase, ShoppingBag, Plus, Upload, X, Play, Image as ImageIcon, Eye, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Briefcase, ShoppingBag, Plus, Upload, X, Play, Image as ImageIcon, Eye, Users, CreditCard, Check, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SERVICE_CATEGORIES = ["Tutoring", "Design", "Writing", "Programming", "Event Planning", "Photography", "Music", "Fitness", "Other"];
 const PRODUCT_CATEGORIES = ["Books", "Electronics", "Clothing", "Furniture", "Sports Equipment", "Stationery", "Other"];
@@ -90,6 +92,7 @@ interface JobApplication {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user] = useAuthState(auth);
+  const { userData } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -392,6 +395,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <TopNav />
+      
       
       <div className="max-w-7xl mx-auto px-6 py-12 space-y-8">
         <motion.div 
@@ -699,11 +703,11 @@ const Dashboard = () => {
 
         {/* Listings Tabs */}
         <Tabs defaultValue="services" className="space-y-6">
-          <TabsList className="glass w-full grid grid-cols-2 lg:grid-cols-4 h-auto p-1">
-            <TabsTrigger value="services" className="text-xs sm:text-sm">My Services</TabsTrigger>
-            <TabsTrigger value="products" className="text-xs sm:text-sm">My Products</TabsTrigger>
-            <TabsTrigger value="jobs" className="text-xs sm:text-sm">My Jobs</TabsTrigger>
-            <TabsTrigger value="applications" className="text-xs sm:text-sm">Apps ({applications.length})</TabsTrigger>
+          <TabsList className="glass w-full grid grid-cols-4 h-auto p-1">
+            <TabsTrigger value="services" className="text-xs sm:text-sm">Services</TabsTrigger>
+            <TabsTrigger value="products" className="text-xs sm:text-sm">Products</TabsTrigger>
+            <TabsTrigger value="jobs" className="text-xs sm:text-sm">Jobs</TabsTrigger>
+            <TabsTrigger value="applications" className="text-xs sm:text-sm">Apps</TabsTrigger>
           </TabsList>
 
           <TabsContent value="services" className="space-y-4">
@@ -1033,6 +1037,7 @@ const Dashboard = () => {
               )}
             </div>
           </TabsContent>
+
         </Tabs>
       </div>
 

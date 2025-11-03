@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { 
   Users, ShoppingBag, Briefcase, TrendingUp, Activity, 
-  Eye, Edit, Trash2, Plus, Search, Filter, AlertTriangle 
+  Eye, Edit, Trash2, Plus, Search, Filter, AlertTriangle, CreditCard, Check, X, Crown
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -47,11 +47,22 @@ interface Product {
   createdAt: any;
 }
 
+interface PremiumRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  paymentMethod: string;
+  screenshotUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: any;
+}
+
 const Admin = () => {
   const { userData, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [premiumRequests, setPremiumRequests] = useState<PremiumRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTab, setSelectedTab] = useState("overview");
@@ -98,6 +109,15 @@ const Admin = () => {
       console.log("Loaded products:", productsData.length);
       setProducts(productsData);
 
+      // Load premium requests
+      const premiumSnapshot = await getDocs(collection(db, "premiumRequests"));
+      const premiumData = premiumSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as PremiumRequest[];
+      console.log("🔥 ADMIN: Loaded premium requests:", premiumData.length, premiumData);
+      setPremiumRequests(premiumData);
+
       setLoading(false);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -123,6 +143,31 @@ const Admin = () => {
       toast.success("Product deleted successfully");
     } catch (error) {
       toast.error("Error deleting product");
+    }
+  };
+
+  const handlePremiumVerification = async (requestId: string, status: 'approved' | 'rejected') => {
+    try {
+      const request = premiumRequests.find(r => r.id === requestId);
+      if (!request) return;
+
+      // Update premium request status
+      await updateDoc(doc(db, "premiumRequests", requestId), { status });
+
+      // If approved, update user's isPremium status
+      if (status === 'approved') {
+        await updateDoc(doc(db, "users", request.userId), { isPremium: true });
+      }
+
+      // Update local state
+      setPremiumRequests(prev => prev.map(r => 
+        r.id === requestId ? { ...r, status } : r
+      ));
+
+      toast.success(`Premium request ${status} successfully!`);
+    } catch (error) {
+      console.error("Error updating premium request:", error);
+      toast.error("Failed to update premium request");
     }
   };
 
@@ -469,6 +514,9 @@ const Admin = () => {
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
+              <TabsTrigger value="premium" className="bg-gradient-to-r from-emerald-500 to-green-500 text-white">
+                Premium ({premiumRequests.filter(r => r.status === 'pending').length})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="users" className="space-y-4">
@@ -590,6 +638,97 @@ const Admin = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="premium" className="space-y-4">
+              <div className="space-y-4">
+                {premiumRequests.length === 0 ? (
+                  <Card className="glass">
+                    <CardContent className="text-center py-12">
+                      <Crown className="w-16 h-16 mx-auto mb-4 text-emerald-500 opacity-50" />
+                      <p className="text-muted-foreground text-lg">No premium requests yet</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  premiumRequests.map((request, index) => (
+                    <motion.div
+                      key={request.id}
+                      initial={{ opacity: 0, x: -100 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1, duration: 0.5 }}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className="group"
+                    >
+                      <Card className="glass border-emerald-200/50 hover:border-emerald-300/50 transition-all duration-300">
+                        <CardContent className="p-6">
+                          <div className="flex items-center gap-6">
+                            <motion.div 
+                              whileHover={{ scale: 1.1, rotate: 5 }}
+                              className="flex-shrink-0 relative"
+                            >
+                              <img 
+                                src={request.screenshotUrl} 
+                                alt="Payment Screenshot" 
+                                className="w-20 h-20 rounded-xl object-cover border-2 border-emerald-300 cursor-pointer shadow-lg"
+                                onClick={() => window.open(request.screenshotUrl, '_blank')}
+                              />
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse" />
+                            </motion.div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-lg text-emerald-800 truncate">{request.userEmail}</h3>
+                              <p className="text-sm text-emerald-600/80 font-medium">
+                                {request.paymentMethod?.toUpperCase()} • Status: {request.status}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {request.createdAt?.toDate?.()?.toLocaleDateString()}
+                              </p>
+                            </div>
+                            
+                            <div className="flex gap-3">
+                              {request.status === 'pending' ? (
+                                <>
+                                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handlePremiumVerification(request.id, 'approved')}
+                                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white border-0 shadow-lg"
+                                    >
+                                      <Check className="w-4 h-4 mr-2" />
+                                      Approve
+                                    </Button>
+                                  </motion.div>
+                                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handlePremiumVerification(request.id, 'rejected')}
+                                      className="shadow-lg"
+                                    >
+                                      <X className="w-4 h-4 mr-2" />
+                                      Reject
+                                    </Button>
+                                  </motion.div>
+                                </>
+                              ) : (
+                                <Badge 
+                                  className={`${
+                                    request.status === 'approved' 
+                                      ? 'bg-green-500 text-white' 
+                                      : 'bg-red-500 text-white'
+                                  } font-semibold px-4 py-2`}
+                                >
+                                  {request.status.toUpperCase()}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>

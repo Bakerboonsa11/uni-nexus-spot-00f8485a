@@ -9,12 +9,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Star, Briefcase, Play, Image as ImageIcon, TrendingUp, Calendar, Users, User, Mail, Phone } from "lucide-react";
+import { Plus, Search, Star, Briefcase, Play, Image as ImageIcon, TrendingUp, Calendar, Users, User, Mail, Phone, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useAuth } from "@/contexts/AuthContext";
+import PremiumPaymentModal from "@/components/PremiumPaymentModal";
 
 const SERVICE_CATEGORIES = ["Tutoring", "Design", "Writing", "Programming", "Event Planning", "Photography", "Music", "Fitness", "Other"];
 
@@ -43,6 +45,7 @@ const Services = () => {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
   const [user] = useAuthState(auth);
+  const { userData } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -52,6 +55,7 @@ const Services = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     loadServices();
@@ -483,9 +487,18 @@ const Services = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-3">{service.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {userData?.isPremium ? service.description : "Upgrade to premium to view service details and contact providers."}
+                  </p>
                   
-                  {service.skills && service.skills.length > 0 && (
+                  {!userData?.isPremium && (
+                    <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                      <Lock className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-primary font-medium">Premium Required</span>
+                    </div>
+                  )}
+                  
+                  {userData?.isPremium && service.skills && service.skills.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {service.skills.slice(0, 3).map((skill, idx) => (
                         <span key={idx} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
@@ -498,7 +511,15 @@ const Services = () => {
                     </div>
                   )}
 
-                  {(service.images?.length > 0 || service.videos?.length > 0) && (
+                  {!userData?.isPremium && (
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                        Premium Required
+                      </span>
+                    </div>
+                  )}
+
+                  {userData?.isPremium && (service.images?.length > 0 || service.videos?.length > 0) && (
                     <div className="flex gap-2 text-xs text-muted-foreground">
                       {service.images?.length > 0 && (
                         <span className="flex items-center gap-1">
@@ -517,7 +538,7 @@ const Services = () => {
 
                   <div className="pt-2 border-t border-border/50">
                     <p className="text-sm font-medium">By: {service.userName}</p>
-                    {service.availability && (
+                    {userData?.isPremium && service.availability && (
                       <p className="text-xs text-muted-foreground">Available: {service.availability}</p>
                     )}
                   </div>
@@ -527,11 +548,15 @@ const Services = () => {
                     variant="outline" 
                     className="w-full glass hover:bg-primary/10"
                     onClick={() => {
+                      if (!userData?.isPremium) {
+                        setPaymentModalOpen(true);
+                        return;
+                      }
                       setSelectedService(service);
                       setDetailsOpen(true);
                     }}
                   >
-                    View Details
+                    {userData?.isPremium ? "View Details" : "Upgrade to View"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -1097,6 +1122,12 @@ const Services = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Premium Payment Modal */}
+        <PremiumPaymentModal 
+          open={paymentModalOpen} 
+          onOpenChange={setPaymentModalOpen} 
+        />
         </div>
       </div>
     </div>

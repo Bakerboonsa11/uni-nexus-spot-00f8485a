@@ -7,6 +7,7 @@ interface UserData {
   uid: string;
   email: string;
   role: 'admin' | 'user';
+  isPremium: boolean;
   displayName?: string;
   photoURL?: string;
   bio?: string;
@@ -52,6 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         role,
+        isPremium: false,
         createdAt: new Date()
       });
       console.log("✅ AuthContext: User saved to Firestore");
@@ -78,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               uid: user.uid,
               email: user.email!,
               role: docData.role,
+              isPremium: docData.isPremium || false,
               displayName: docData.displayName,
               photoURL: docData.photoURL,
               bio: docData.bio,
