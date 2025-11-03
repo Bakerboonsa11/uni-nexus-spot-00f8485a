@@ -3,11 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NEXUS SPOT - Haramaya University Hub</title>
-    <meta name="description" content="The Ultimate Hub for Products, Services, and Business at Haramaya University. Connect, collaborate, and thrive together." />
-    <meta name="author" content="NEXUS SPOT" />
+    <title>NEXUS SPOT</title>
+    <meta name="description" content="Haramaya University Hub" />
     
-    <!-- PWA Meta Tags -->
+    <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#10b981" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,37 +14,19 @@
     <meta name="apple-mobile-web-app-title" content="NEXUS SPOT" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+    <link rel="icon" href="/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <meta property="og:title" content="NEXUS SPOT - Haramaya University Hub" />
-    <meta property="og:description" content="The Ultimate Hub for Products, Services, and Business at Haramaya University" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/og-image.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@nexusspot" />
-    <meta name="twitter:image" content="/og-image.png" />
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- PWA Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
+        navigator.serviceWorker.register('/sw.js');
       }
     </script>
   </body>
