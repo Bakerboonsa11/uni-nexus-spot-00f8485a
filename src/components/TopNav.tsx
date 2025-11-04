@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
 import { GraduationCap, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu, Camera } from "lucide-react";
+import { ModeToggle } from "./theme-toggle";
 import { useState } from "react";
 import { toast } from "sonner";
 import { doc, updateDoc } from "firebase/firestore";
@@ -207,6 +208,8 @@ export const TopNav = () => {
                 </div>
               </SheetContent>
             </Sheet>
+
+            <ModeToggle />
 
             {/* Profile Menu */}
             <DropdownMenu>

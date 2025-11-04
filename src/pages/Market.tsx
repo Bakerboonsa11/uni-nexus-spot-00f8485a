@@ -13,7 +13,10 @@ import { Plus, Search, Package, MapPin, Calendar, Image as ImageIcon, User, Mail
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, runTransaction, where } from "firebase/firestore";
+import { ReviewModal } from "@/components/ReviewModal";
+import { Reviews } from "@/components/Reviews";
+import { Rating } from "@/components/ui/rating";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,6 +41,8 @@ interface Product {
   images: string[];
   location: string;
   negotiable: boolean;
+  averageRating: number;
+  ratingCount: number;
   createdAt: any;
 }
 
@@ -57,6 +62,7 @@ const Market = () => {
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -95,7 +101,8 @@ const Market = () => {
           return productData;
         })
       );
-      setProducts(productsData);
+      const sortedProducts = productsData.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+      setProducts(sortedProducts);
     } catch (error) {
       console.error("Error loading products:", error);
       toast.error("Error loading products");
@@ -115,39 +122,7 @@ const Market = () => {
     }
   };
 
-  const seedMockData = async () => {
-    if (!user) return;
-    
-    const mockProducts = [
-      {
-        userId: user.uid,
-        userName: "John Smith",
-        userEmail: "john.s@university.edu",
-        title: "iPhone 13 Pro Max - 256GB",
-        description: "Excellent condition iPhone 13 Pro Max in Pacific Blue.",
-        category: "Electronics",
-        condition: "Like New",
-        price: 850,
-        originalPrice: 1099,
-        contactInfo: "john.s@university.edu",
-        images: ["https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500"],
-        location: "Campus Dorm A",
-        negotiable: true,
-        createdAt: new Date()
-      }
-    ];
 
-    try {
-      for (const product of mockProducts) {
-        await addDoc(collection(db, "products"), product);
-      }
-      toast.success("Mock products seeded successfully!");
-      loadProducts();
-    } catch (error) {
-      console.error("Error seeding data:", error);
-      toast.error("Error seeding data");
-    }
-  };
 
   const handleFileUpload = async (files: FileList, type: 'image' | 'video'): Promise<string[]> => {
     const uploadedUrls: string[] = [];
@@ -202,6 +177,8 @@ const Market = () => {
         images: (formData.get("images") as string).split(",").filter(url => url.trim()),
         location: formData.get("location") as string,
         negotiable: formData.get("negotiable") === "on",
+        averageRating: 0,
+        ratingCount: 0,
         createdAt: new Date()
       });
 
@@ -215,6 +192,56 @@ const Market = () => {
     }
 
     setLoading(false);
+  };
+
+  const handleAddReview = async (rating: number) => {
+    if (!user || !selectedProduct) {
+      toast.error("You must be logged in to leave a review.");
+      return;
+    }
+
+    const productRef = doc(db, "products", selectedProduct.id);
+    const reviewRef = collection(productRef, "reviews");
+
+    // Check if the user has already reviewed this product
+    const q = query(reviewRef, where("userId", "==", user.uid));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      toast.error("You have already reviewed this product.");
+      return;
+    }
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const productDoc = await transaction.get(productRef);
+        if (!productDoc.exists()) {
+          throw "Product does not exist!";
+        }
+
+        const newRatingCount = (productDoc.data().ratingCount || 0) + 1;
+        const oldRatingTotal = (productDoc.data().averageRating || 0) * (productDoc.data().ratingCount || 0);
+        const newAverageRating = (oldRatingTotal + rating) / newRatingCount;
+
+        transaction.update(productRef, {
+          ratingCount: newRatingCount,
+          averageRating: newAverageRating,
+        });
+
+        transaction.set(doc(reviewRef), {
+          userId: user.uid,
+          userName: user.displayName,
+          userPhotoURL: user.photoURL,
+          rating,
+          createdAt: new Date(),
+        });
+      });
+
+      toast.success("Review submitted successfully!");
+      loadProducts();
+    } catch (error) {
+      console.error("Error submitting review: ", error);
+      toast.error("Error submitting review.");
+    }
   };
 
   const filteredProducts = products.filter((product) => {
@@ -482,7 +509,7 @@ const Market = () => {
                     </div>
                   </div>
                   <CardTitle className="text-xl">{product.title}</CardTitle>
-                  <CardDescription className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
                     <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-primary/20">
                       {product.category}
                     </span>
@@ -493,7 +520,13 @@ const Market = () => {
                     {product.negotiable && (
                       <span className="text-xs text-green-600 font-medium">Negotiable</span>
                     )}
-                  </CardDescription>
+                    {product.averageRating > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Rating rating={product.averageRating} size={12} />
+                        <span className="text-xs text-muted-foreground">({product.ratingCount})</span>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground line-clamp-3">
@@ -640,6 +673,12 @@ const Market = () => {
                     </div>
                   </div>
 
+                  <div className="space-y-4">
+                    <Reviews itemId={selectedProduct.id} itemType="product" />
+                  </div>
+
+                  <Button onClick={() => setReviewModalOpen(true)}>Leave a Review</Button>
+
                   {/* Contact Options */}
                   <div className="space-y-4">
                     <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -771,6 +810,15 @@ const Market = () => {
           open={paymentModalOpen} 
           onOpenChange={setPaymentModalOpen} 
         />
+
+        {selectedProduct && (
+          <ReviewModal
+            open={reviewModalOpen}
+            onOpenChange={setReviewModalOpen}
+            onSubmit={handleAddReview}
+            productName={selectedProduct.title}
+          />
+        )}
         </div>
       </div>
     </div>

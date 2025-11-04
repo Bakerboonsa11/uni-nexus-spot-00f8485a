@@ -13,7 +13,10 @@ import { Plus, Search, Star, Briefcase, Play, Image as ImageIcon, TrendingUp, Ca
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc, runTransaction, where } from "firebase/firestore";
+import { ReviewModal } from "@/components/ReviewModal";
+import { Reviews } from "@/components/Reviews";
+import { Rating } from "@/components/ui/rating";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import PremiumPaymentModal from "@/components/PremiumPaymentModal";
@@ -36,8 +39,8 @@ interface Service {
   skills: string[];
   experience: string;
   availability: string;
-  rating: number;
-  reviews: number;
+  averageRating: number;
+  ratingCount: number;
   createdAt: any;
 }
 
@@ -56,6 +59,7 @@ const Services = () => {
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   useEffect(() => {
     loadServices();
@@ -73,8 +77,7 @@ const Services = () => {
 
   const loadServices = async () => {
     try {
-      const q = query(collection(db, "services"), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(collection(db, "services"));
       const servicesData = await Promise.all(
         querySnapshot.docs.map(async (serviceDoc) => {
           const serviceData = { id: serviceDoc.id, ...serviceDoc.data() } as Service;
@@ -95,7 +98,8 @@ const Services = () => {
           return serviceData;
         })
       );
-      setServices(servicesData);
+      const sortedServices = servicesData.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+      setServices(sortedServices);
     } catch (error) {
       console.error("Error loading services:", error);
       toast.error("Error loading services");
@@ -115,77 +119,7 @@ const Services = () => {
     }
   };
 
-  const seedMockData = async () => {
-    if (!user) return;
-    
-    const mockServices = [
-      {
-        userId: user.uid,
-        userName: "Sarah Johnson",
-        userEmail: "sarah.j@university.edu",
-        title: "Math Tutoring - Calculus & Statistics",
-        description: "Experienced math tutor with 3+ years helping students excel in calculus, statistics, and algebra.",
-        category: "Tutoring",
-        price: 25,
-        contactInfo: "sarah.j@university.edu",
-        images: ["https://images.unsplash.com/photo-1509228468518-180dd4864904?w=500"],
-        videos: [],
-        skills: ["Calculus", "Statistics", "Algebra"],
-        experience: "3+ years tutoring experience, Mathematics major with 3.9 GPA",
-        availability: "Monday-Friday 3-7 PM",
-        rating: 4.8,
-        reviews: 23,
-        createdAt: new Date()
-      },
-      {
-        userId: user.uid,
-        userName: "Alex Chen",
-        userEmail: "alex.chen@university.edu",
-        title: "Web Development & Programming",
-        description: "Full-stack developer offering web development services and programming tutoring.",
-        category: "Programming",
-        price: 35,
-        contactInfo: "alex.chen@university.edu",
-        images: ["https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=500"],
-        videos: [],
-        skills: ["React", "Node.js", "Python", "JavaScript"],
-        experience: "Computer Science senior, 2 years freelance experience",
-        availability: "Evenings and weekends",
-        rating: 4.9,
-        reviews: 18,
-        createdAt: new Date()
-      },
-      {
-        userId: user.uid,
-        userName: "Emma Rodriguez",
-        userEmail: "emma.r@university.edu",
-        title: "Graphic Design & Branding",
-        description: "Creative graphic designer specializing in logos, branding, and social media graphics.",
-        category: "Design",
-        price: 30,
-        contactInfo: "emma.r@university.edu",
-        images: ["https://images.unsplash.com/photo-1561070791-2526d30994b5?w=500"],
-        videos: [],
-        skills: ["Photoshop", "Illustrator", "Branding", "Logo Design"],
-        experience: "Art & Design major, freelance designer for 2 years",
-        availability: "Weekdays after 2 PM",
-        rating: 4.7,
-        reviews: 31,
-        createdAt: new Date()
-      }
-    ];
 
-    try {
-      for (const service of mockServices) {
-        await addDoc(collection(db, "services"), service);
-      }
-      toast.success("Mock data seeded successfully!");
-      loadServices();
-    } catch (error) {
-      console.error("Error seeding data:", error);
-      toast.error("Error seeding data");
-    }
-  };
 
   const handleCreateService = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -212,8 +146,8 @@ const Services = () => {
         skills: (formData.get("skills") as string).split(",").filter(skill => skill.trim()),
         experience: formData.get("experience") as string,
         availability: formData.get("availability") as string,
-        rating: 0,
-        reviews: 0,
+        averageRating: 0,
+        ratingCount: 0,
         createdAt: new Date()
       });
 
@@ -227,6 +161,56 @@ const Services = () => {
     }
 
     setLoading(false);
+  };
+
+  const handleAddReview = async (rating: number) => {
+    if (!user || !selectedService) {
+      toast.error("You must be logged in to leave a review.");
+      return;
+    }
+
+    const serviceRef = doc(db, "services", selectedService.id);
+    const reviewRef = collection(serviceRef, "reviews");
+
+    // Check if the user has already reviewed this service
+    const q = query(reviewRef, where("userId", "==", user.uid));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      toast.error("You have already reviewed this service.");
+      return;
+    }
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const serviceDoc = await transaction.get(serviceRef);
+        if (!serviceDoc.exists()) {
+          throw "Service does not exist!";
+        }
+
+        const newRatingCount = (serviceDoc.data().ratingCount || 0) + 1;
+        const oldRatingTotal = (serviceDoc.data().averageRating || 0) * (serviceDoc.data().ratingCount || 0);
+        const newAverageRating = (oldRatingTotal + rating) / newRatingCount;
+
+        transaction.update(serviceRef, {
+          ratingCount: newRatingCount,
+          averageRating: newAverageRating,
+        });
+
+        transaction.set(doc(reviewRef), {
+          userId: user.uid,
+          userName: user.displayName,
+          userPhotoURL: user.photoURL,
+          rating,
+          createdAt: new Date(),
+        });
+      });
+
+      toast.success("Review submitted successfully!");
+      loadServices();
+    } catch (error) {
+      console.error("Error submitting review: ", error);
+      toast.error("Error submitting review.");
+    }
   };
 
   const filteredServices = services.filter((service) => {
@@ -473,18 +457,18 @@ const Services = () => {
                     </span>
                   </div>
                   <CardTitle className="text-xl">{service.title}</CardTitle>
-                  <CardDescription className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
                     <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-primary/20">
                       {service.category}
                     </span>
                     <span className="text-xs text-muted-foreground">by {service.userName || service.userEmail?.split('@')[0]}</span>
-                    {service.rating > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        {service.rating} ({service.reviews})
-                      </span>
+                    {service.averageRating > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Rating rating={service.averageRating} size={12} />
+                        <span className="text-xs text-muted-foreground">({service.ratingCount})</span>
+                      </div>
                     )}
-                  </CardDescription>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground line-clamp-3">
@@ -873,26 +857,29 @@ const Services = () => {
                         <p className="text-sm text-muted-foreground">Contact</p>
                         <p className="font-semibold">{selectedService.contactInfo}</p>
                       </div>
-                      {selectedService.rating > 0 && (
+                      {selectedService.averageRating > 0 && (
                         <div className="md:col-span-2">
                           <p className="text-sm text-muted-foreground">Rating</p>
                           <div className="flex items-center gap-2">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`h-5 w-5 ${i < selectedService.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                                />
-                              ))}
-                            </div>
-                            <span className="font-semibold">{selectedService.rating} ({selectedService.reviews} reviews)</span>
+                            <Rating rating={selectedService.averageRating} />
+                            <span className="font-semibold">{selectedService.averageRating.toFixed(1)} ({selectedService.ratingCount} reviews)</span>
                           </div>
                         </div>
                       )}
                     </div>
                   </motion.div>
 
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 }}
+                  >
+                    <Reviews itemId={selectedService.id} itemType="service" />
+                  </motion.div>
+
                   {/* Ultra Contact Options */}
+                  <Button onClick={() => setReviewModalOpen(true)}>Leave a Review</Button>
+
                   <motion.div
                     initial={{ opacity: 0, y: 100 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1128,6 +1115,15 @@ const Services = () => {
           open={paymentModalOpen} 
           onOpenChange={setPaymentModalOpen} 
         />
+
+        {selectedService && (
+          <ReviewModal
+            open={reviewModalOpen}
+            onOpenChange={setReviewModalOpen}
+            onSubmit={handleAddReview}
+            productName={selectedService.title}
+          />
+        )}
         </div>
       </div>
     </div>
