@@ -17,6 +17,7 @@ import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
+import PremiumPaymentModal from "@/components/PremiumPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SERVICE_CATEGORIES = ["Tutoring", "Design", "Writing", "Programming", "Event Planning", "Photography", "Music", "Fitness", "Other"];
@@ -102,6 +103,7 @@ const Dashboard = () => {
   const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [jobDialogOpen, setJobDialogOpen] = useState(false);
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
 
@@ -413,7 +415,15 @@ const Dashboard = () => {
           <div className="flex flex-col sm:flex-row gap-2">
             <Dialog open={serviceDialogOpen} onOpenChange={setServiceDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2 bg-gradient-to-r from-primary to-secondary w-full sm:w-auto">
+                <Button
+                  onClick={(e) => {
+                    if (!userData?.isPremium) {
+                      e.preventDefault();
+                      setPremiumModalOpen(true);
+                    }
+                  }}
+                  className="gap-2 bg-gradient-to-r from-primary to-secondary w-full sm:w-auto"
+                >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Create Service</span>
                   <span className="sm:hidden">Service</span>
@@ -524,7 +534,15 @@ const Dashboard = () => {
 
             <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 w-full sm:w-auto">
+                <Button
+                  onClick={(e) => {
+                    if (!userData?.isPremium) {
+                      e.preventDefault();
+                      setPremiumModalOpen(true);
+                    }
+                  }}
+                  variant="outline" className="gap-2 w-full sm:w-auto"
+                >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">List Product</span>
                   <span className="sm:hidden">Product</span>
@@ -680,7 +698,13 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="text-3xl font-bold">{jobs.length}</div>
                 <Button
-                  onClick={() => setJobDialogOpen(true)}
+                  onClick={() => {
+                    if (userData?.isPremium) {
+                      setJobDialogOpen(true);
+                    } else {
+                      setPremiumModalOpen(true);
+                    }
+                  }}
                   size="sm"
                   className="bg-gradient-to-r from-accent to-primary hover:opacity-90"
                 >
@@ -1315,6 +1339,8 @@ const Dashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <PremiumPaymentModal open={premiumModalOpen} onOpenChange={setPremiumModalOpen} />
     </div>
   );
 };
