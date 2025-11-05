@@ -14,12 +14,13 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
-import { GraduationCap, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu, Camera } from "lucide-react";
+import { GraduationCap, LogOut, User, Settings as SettingsIcon, LayoutDashboard, Briefcase, ShoppingBag, Shield, Menu, Camera, Lock } from "lucide-react";
 import { ModeToggle } from "./theme-toggle";
 import { useState } from "react";
 import { toast } from "sonner";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { uploadToCloudinary, validateFile } from "@/lib/cloudinary";
 
 export const TopNav = () => {
@@ -28,6 +29,7 @@ export const TopNav = () => {
   const { currentUser, userData, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -38,6 +40,34 @@ export const TopNav = () => {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const formData = new FormData(e.currentTarget);
+    const oldPassword = formData.get("oldPassword") as string;
+    const newPassword = formData.get("newPassword") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const credential = EmailAuthProvider.credential(currentUser.email, oldPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPassword);
+      toast.success("Password updated successfully!");
+      setChangePasswordOpen(false);
+    } catch (error) {
+      console.error("Error updating password:", error);
+      toast.error("Error updating password. Please check your old password.");
+    }
+    setLoading(false);
   };
 
   const handleProfileUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -362,6 +392,37 @@ export const TopNav = () => {
                   <SettingsIcon className="w-4 h-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
+
+                <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Lock className="w-4 h-4 mr-2" />
+                      Change Password
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent className="glass max-w-[95vw] sm:max-w-md mx-4">
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleChangePassword} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="oldPassword">Old Password</Label>
+                        <Input id="oldPassword" name="oldPassword" type="password" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <Input id="newPassword" name="newPassword" type="password" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                        <Input id="confirmPassword" name="confirmPassword" type="password" required />
+                      </div>
+                      <Button type="submit" disabled={loading} className="w-full">
+                        {loading ? "Updating..." : "Update Password"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   <LogOut className="w-4 h-4 mr-2" />

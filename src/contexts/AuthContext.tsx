@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: user.email,
         displayName: user.email.split('@')[0],
         role,
-        isPremium: false,
+        isPremium: true,
         createdAt: new Date()
       });
       console.log("✅ AuthContext: User saved to Firestore");
