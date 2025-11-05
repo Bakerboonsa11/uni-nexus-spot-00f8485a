@@ -79,7 +79,7 @@ const AdminPremiumRequests = () => {
           {requests.map((request) => (
             <Card key={request.id} className="p-4">
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start md:items-center gap-4">
                   <div>
                     <CardTitle className="text-lg">{request.userEmail}</CardTitle>
                     <p className="text-sm text-muted-foreground">
@@ -89,12 +89,14 @@ const AdminPremiumRequests = () => {
                       Submitted: {request.createdAt?.toDate()?.toLocaleString()}
                     </p>
                   </div>
-                  {getStatusBadge(request.status)}
+                  <div className="justify-self-start md:justify-self-end">
+                    {getStatusBadge(request.status)}
+                  </div>
                 </div>
               </CardHeader>
               
               <CardContent className="space-y-4">
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Button
                     variant="outline"
                     size="sm"

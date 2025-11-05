@@ -18,26 +18,20 @@ interface PremiumPaymentModalProps {
 
 const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalProps) => {
   const { currentUser } = useAuth();
-  const [selectedMethod, setSelectedMethod] = useState<'cbe' | 'awash' | 'telebirr' | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<'cbe' | 'telebirr' | null>(null);
   const [uploading, setUploading] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
 
   const paymentMethods = {
     cbe: {
-      name: "CBE Bank",
-      account: "1000123456789",
+      name: "CBE Bank (bonsa baker abdulkadir)",
+      account: "1000628264067",
       icon: <Building className="w-6 h-6" />,
       color: "from-blue-500 to-blue-600"
     },
-    awash: {
-      name: "Awash Bank",
-      account: "0123456789012",
-      icon: <CreditCard className="w-6 h-6" />,
-      color: "from-green-500 to-green-600"
-    },
     telebirr: {
-      name: "TeleBirr",
-      account: "+251912345678",
+      name: "TeleBirr (elemo baker abdulkadir)",
+      account: "0900690880",
       icon: <Smartphone className="w-6 h-6" />,
       color: "from-orange-500 to-orange-600"
     }
@@ -112,7 +106,7 @@ const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalProps) =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl glass">
+      <DialogContent className="max-w-2xl glass overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Upgrade to Premium
@@ -163,7 +157,7 @@ const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalProps) =
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  1. Transfer <strong>100 ETB</strong> to the {paymentMethods[selectedMethod].name} account: 
+                  1. Transfer <strong>30 ETB</strong> to the {paymentMethods[selectedMethod].name} account: 
                   <span className="font-mono ml-1">{paymentMethods[selectedMethod].account}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">

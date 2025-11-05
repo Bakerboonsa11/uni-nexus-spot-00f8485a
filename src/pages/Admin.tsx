@@ -540,14 +540,14 @@ const Admin = () => {
                     {users
                       .filter(user => user.email.toLowerCase().includes(searchTerm.toLowerCase()))
                       .map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={user.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start md:items-center gap-4 p-4 border rounded-lg">
                         <div>
                           <p className="font-medium">{user.email}</p>
                           <p className="text-sm text-muted-foreground">
                             Joined: {user.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-self-start md:justify-self-end">
                           <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
                             {user.role}
                           </Badge>
@@ -574,14 +574,18 @@ const Admin = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {services.map((service) => (
-                      <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={service.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start md:items-center gap-4 p-4 border rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium">{service.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {service.category} • ${service.price} • by {service.userName}
-                          </p>
+                          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-2">
+                            <span>{service.category}</span>
+                            <span>•</span>
+                            <span>${service.price}</span>
+                            <span>•</span>
+                            <span>by {service.userName}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-self-start md:justify-self-end">
                           <Button size="sm" variant="outline">
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -611,14 +615,20 @@ const Admin = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {products.map((product) => (
-                      <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={product.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start md:items-center gap-4 p-4 border rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium">{product.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {product.category} • {product.condition} • ${product.price} • by {product.userName}
-                          </p>
+                          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-2">
+                            <span>{product.category}</span>
+                            <span>•</span>
+                            <span>{product.condition}</span>
+                            <span>•</span>
+                            <span>${product.price}</span>
+                            <span>•</span>
+                            <span>by {product.userName}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-self-start md:justify-self-end">
                           <Button size="sm" variant="outline">
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -661,7 +671,7 @@ const Admin = () => {
                     >
                       <Card className="glass border-emerald-200/50 hover:border-emerald-300/50 transition-all duration-300">
                         <CardContent className="p-6">
-                          <div className="flex items-center gap-6">
+                          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-start md:items-center gap-6">
                             <motion.div 
                               whileHover={{ scale: 1.1, rotate: 5 }}
                               className="flex-shrink-0 relative"
@@ -685,7 +695,7 @@ const Admin = () => {
                               </p>
                             </div>
                             
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3 justify-self-start md:justify-self-end">
                               {request.status === 'pending' ? (
                                 <>
                                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
