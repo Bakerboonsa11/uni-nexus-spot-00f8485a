@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
+        displayName: user.email.split('@')[0],
         role,
         isPremium: false,
         createdAt: new Date()

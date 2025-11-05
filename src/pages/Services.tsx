@@ -134,7 +134,7 @@ const Services = () => {
     try {
       await addDoc(collection(db, "services"), {
         userId: user.uid,
-        userName: userData.name,
+        userName: userData.displayName || user.email.split('@')[0],
         userEmail: user.email,
         title: formData.get("title") as string,
         description: formData.get("description") as string,

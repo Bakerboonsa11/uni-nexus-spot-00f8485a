@@ -92,6 +92,7 @@ const Market = () => {
               if (userDoc.exists()) {
                 const userData = userDoc.data();
                 productData.userPhotoURL = userData.photoURL;
+                productData.userName = userData.displayName || productData.userName;
               }
             } catch (error) {
               console.error("Error fetching user data:", error);
@@ -165,7 +166,7 @@ const Market = () => {
     try {
       await addDoc(collection(db, "products"), {
         userId: user.uid,
-        userName: user.displayName || "Anonymous",
+        userName: userData.displayName || user.email.split('@')[0],
         userEmail: user.email,
         title: formData.get("title") as string,
         description: formData.get("description") as string,
@@ -513,7 +514,13 @@ const Market = () => {
                     <span className="inline-flex items-center rounded-full glass px-2.5 py-0.5 text-xs font-medium border border-primary/20">
                       {product.category}
                     </span>
-                    <span className="text-xs text-muted-foreground">by {product.userName || product.userEmail?.split('@')[0]}</span>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={product.userPhotoURL} />
+                        <AvatarFallback>{product.userName?.[0] || product.userEmail?.[0]?.toUpperCase() || "A"}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground">{product.userName === 'Anonymous' ? product.userEmail?.split('@')[0] : product.userName}</span>
+                    </div>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${getConditionColor(product.condition)}`}>
                       {product.condition}
                     </span>
@@ -554,7 +561,13 @@ const Market = () => {
                         {userData?.isPremium ? product.location : "Premium Required"}
                       </span>
                     </div>
-                    <p className="text-sm font-medium">Seller: {product.userName}</p>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={product.userPhotoURL} />
+                        <AvatarFallback>{product.userName?.[0] || product.userEmail?.[0]?.toUpperCase() || "A"}</AvatarFallback>
+                      </Avatar>
+                      <p className="text-sm font-medium">{product.userName === 'Anonymous' ? product.userEmail?.split('@')[0] : product.userName}</p>
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
                       {product.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
@@ -666,7 +679,13 @@ const Market = () => {
                     <div className="space-y-2">
                       <h3 className="text-lg font-semibold">Seller Information</h3>
                       <div className="space-y-1">
-                        <p><span className="font-medium">Seller:</span> {selectedProduct.userName}</p>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={selectedProduct.userPhotoURL} />
+                          <AvatarFallback>{selectedProduct.userName?.[0] || selectedProduct.userEmail?.[0]?.toUpperCase() || "A"}</AvatarFallback>
+                        </Avatar>
+                        <p><span className="font-medium">Seller:</span> {selectedProduct.userName === 'Anonymous' ? selectedProduct.userEmail?.split('@')[0] : selectedProduct.userName}</p>
+                      </div>
                         <p><span className="font-medium">Contact:</span> {selectedProduct.contactInfo}</p>
                         <p><span className="font-medium">Listed:</span> {selectedProduct.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}</p>
                       </div>

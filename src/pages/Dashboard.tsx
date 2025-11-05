@@ -248,7 +248,7 @@ const Dashboard = () => {
       // Create service data
       const serviceData = {
         userId: user.uid,
-        userName: userData.name,
+        userName: userData.displayName || user.email.split('@')[0],
         userEmail: user.email,
         title: formData.get("title") as string,
         description: formData.get("description") as string,
@@ -315,7 +315,7 @@ const Dashboard = () => {
       // Create product data
       const productData = {
         userId: user.uid,
-        userName: userData.name,
+        userName: userData.displayName || user.email.split('@')[0],
         userEmail: user.email,
         title: formData.get("title") as string,
         description: formData.get("description") as string,
