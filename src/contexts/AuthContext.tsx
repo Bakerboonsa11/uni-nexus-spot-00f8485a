@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               uid: user.uid,
               email: user.email!,
               role: docData.role,
-              isPremium: docData.isPremium || false,
+              isPremium: docData.isPremium ?? true,
               displayName: docData.displayName,
               photoURL: docData.photoURL,
               bio: docData.bio,
