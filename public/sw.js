@@ -1,36 +1,11 @@
+import { precacheAndRoute } from 'workbox-precaching';
+
 const CACHE_NAME = 'nexus-spot-cache-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico',
-  '/assets/education.svg',
-  '/assets/placeholder.svg',
-  '/icon-192.png',
-  '/icon-512.png'
-];
+
+// The vite-plugin-pwa will inject the manifest here
+precacheAndRoute(self.__WB_MANIFEST || []);
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        // The /assets path is based on the vite config base or publicDir setting
-        // Assuming standard vite setup where `public` dir is root
-        return fetch('/assets-manifest.json') 
-          .then(response => response.json()) 
-          .then(assets => {
-            const viteAssets = Object.values(assets).map(asset => asset.file);
-            const allToCache = [...ASSETS_TO_CACHE, ...viteAssets];
-            console.log('Caching assets:', allToCache);
-            return cache.addAll(allToCache);
-          })
-          .catch(err => {
-            console.log('No assets-manifest.json found, caching default assets.', err);
-            return cache.addAll(ASSETS_TO_CACHE);
-          });
-      })
-  );
   self.skipWaiting();
 });
 
@@ -65,8 +40,6 @@ self.addEventListener('fetch', (event) => {
         }
         // Not in cache, go to network
         return fetch(event.request).then((networkResponse) => {
-            // Optionally, add the new request to the cache
-            // Be careful with what you cache, especially with third-party URLs
             return networkResponse;
         });
       })
